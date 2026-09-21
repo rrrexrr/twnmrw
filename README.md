@@ -84,6 +84,26 @@ const LOCATION_2 = "上海";
 | `FOOTER_TEXT` | 底部那句话 |
 | `PERCENT_DECIMALS` | 百分比小数位数（默认 2） |
 | `LABEL_LOCALE` | 时间轴两端日期的语言：`"en-US"` → `September 6`；`"zh-CN"` → `9月6日` |
+| `HINT_TEXT` | 进度条下面那句小提示（设成 `""` 就不显示） |
+| `PIXEL_COLORS` | 两个像素小人的配色（头发、衣服、皮肤、鞋） |
+| `HEART_COLORS` / `HEARTS_PER_TAP` | 点击冒出的爱心颜色和数量 |
+
+### 像素小人
+
+进度条上方那两个手牵手的小人会跟着进度一起往右走，点击（手机上是轻触）页面任意位置，他们头顶会冒爱心。
+见面当天他们会自己不停冒爱心。
+
+小人的造型是用字符画定义的，在 `script.js` 里的 `REX_A` / `WILLOW_A`，一个字符就是一个像素点，
+`.` 表示透明，其余字母对应 `PIXEL_COLORS` 里的颜色，想改发型或衣服直接改那几行字符即可。
+
+### 字体
+
+标题用的是系统自带的衬线字体（苹果设备上是 New York + 宋体，Windows 上是 Georgia + 宋体），
+不需要下载，离线也能正常显示。想换风格的话，改 `style.css` 顶部的 `--font-title` 就行，
+注释里给了另外两种现成的搭配（圆润无衬线 / 像素风）。
+
+`NEXT MEETING` 那行小标签用的是像素字体 Press Start 2P，从 Google Fonts 加载；
+万一加载不到（比如在国内），会自动退回等宽字体，不影响页面。
 
 ### 修改配色
 
@@ -119,7 +139,7 @@ const LOCATION_2 = "上海";
 3. **Source** 选择 **Deploy from a branch**
 4. **Branch** 选择 **main**，文件夹选择 **/ (root)**，点 **Save**
 5. 等待 1–2 分钟，页面顶部会出现网址：
-   `https://rrrexrr.github.io/<仓库名>/`
+   `https://rrrexrr.github.io/twnmrw/`
 
 ### 关于目录
 
@@ -147,4 +167,3 @@ git push
 - 进度百分比被限制在 0%–100% 之间，日期设错也不会出现负数或超过 100%
 - 到达见面时间后，倒计时会替换成 `❤️见面就是今天❤️`，进度条停在 100%
 - 日期格式写错时，页面会显示一条提示，而不是白屏
-# twnmrw
