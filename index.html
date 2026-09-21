@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#faf8fc" />
+  <title>下次见面</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💜</text></svg>" />
+</head>
+<body>
+  <main class="card" id="card">
+    <header class="head">
+      <p class="eyebrow" id="eyebrow">Next Meeting</p>
+      <h1 class="title" id="title">距离下次见面还有</h1>
+      <p class="places" id="places" hidden></p>
+    </header>
+
+    <section class="countdown" id="countdown" aria-live="polite" aria-label="倒计时">
+      <div class="unit"><span class="num" id="days">--</span><span class="lbl">天</span></div>
+      <div class="sep" aria-hidden="true"></div>
+      <div class="unit"><span class="num" id="hours">--</span><span class="lbl">时</span></div>
+      <div class="sep" aria-hidden="true"></div>
+      <div class="unit"><span class="num" id="minutes">--</span><span class="lbl">分</span></div>
+      <div class="sep" aria-hidden="true"></div>
+      <div class="unit"><span class="num" id="seconds">--</span><span class="lbl">秒</span></div>
+    </section>
+
+    <p class="arrival" id="arrival" hidden>❤️见面就是今天❤️</p>
+
+    <section class="progress" aria-label="进度">
+      <div class="progress-meta">
+        <span class="progress-label">已走过</span>
+        <span class="progress-value" id="percent">--</span>
+      </div>
+
+      <div class="bar" id="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="fill" id="fill">
+          <span class="fill-flow" aria-hidden="true"></span>
+          <span class="fill-sheen" aria-hidden="true"></span>
+        </div>
+      </div>
+
+      <div class="timeline">
+        <time class="tl-date" id="startLabel" datetime="">—</time>
+        <div class="tl-track">
+          <span class="tl-line" aria-hidden="true"></span>
+          <span class="tl-dot" id="marker" aria-hidden="true"></span>
+        </div>
+        <time class="tl-date" id="meetLabel" datetime="">—</time>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <span class="heart" aria-hidden="true">♥</span>
+      <span class="foot-text" id="footText">一天一天，都在靠近</span>
+    </footer>
+
+    <p class="error" id="error" hidden role="alert"></p>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
