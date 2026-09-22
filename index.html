@@ -7,13 +7,18 @@
   <!-- 不希望被搜索引擎收录；想被收录的话删掉这一行 -->
   <meta name="robots" content="noindex, nofollow" />
   <title>下次见面</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- 只有那行小标签用到这个像素字体；加载不到也不影响（会退回等宽字体） -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💜</text></svg>" />
 </head>
 <body>
   <main class="card" id="card">
     <header class="head">
-      <h1 class="title" id="title">距离Rex和Willow下次见面还有</h1>
+      <p class="eyebrow" id="eyebrow">Next Meeting</p>
+      <h1 class="title" id="title">距离Rex和洛洛下次见面还有</h1>
       <p class="places" id="places" hidden></p>
     </header>
 
@@ -35,6 +40,10 @@
         <span class="progress-value" id="percent">--</span>
       </div>
 
+      <div class="walk" id="walk">
+        <div class="couple" id="couple" aria-hidden="true"></div>
+      </div>
+
       <div class="bar" id="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
         <div class="fill" id="fill">
           <span class="fill-flow" aria-hidden="true"></span>
@@ -50,6 +59,8 @@
         </div>
         <time class="tl-date" id="meetLabel" datetime="">—</time>
       </div>
+
+      <p class="hint" id="hint">轻点一下 ♡</p>
     </section>
 
     <footer class="foot">

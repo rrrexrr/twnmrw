@@ -26,7 +26,7 @@ const ARRIVED_TEXT = "❤️见面就是今天❤️";
 // 见面当天，标题会换成下面这两行
 const ARRIVED_EYEBROW = "Today";
 const ARRIVED_TITLE   = `${sp(PERSON_2)}和${sp(PERSON_1)}`.trim();
-const FOOTER_TEXT  = "一天一天，都在靠近";
+const FOOTER_TEXT  = "相思病犯的时候 就来看一眼吧～";
 
 // 像素小人的配色（左边是 PERSON_2 / Rex，右边是 PERSON_1 / 洛洛）
 const PIXEL_COLORS = {
@@ -59,6 +59,11 @@ const LABEL_LOCALE = "en-US";
    ========================================================== */
 
 const el = (id) => document.getElementById(id);
+
+// 下面两个小工具让代码对「HTML 里少了某个元素」免疫：
+// 你直接从 index.html 删掉某一行（比如不想要顶部小标签），页面也不会报错
+const setText = (node, text) => { if (node) node.textContent = text; };
+const setHtml = (node, html) => { if (node) node.innerHTML = html; };
 
 const escapeHtml = (str) =>
   String(str).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -208,6 +213,7 @@ function toDateTimeAttr(date) {
 
 /** 画出两个手牵手的小人（两帧）+ 一个装爱心的图层 */
 function buildCouple() {
+  if (!ui.couple) return;
   const frameA = joinSprites(REX_A, WILLOW_A);
   const frameB = joinSprites(stepFrame(REX_A), stepFrame(WILLOW_A));
   ui.couple.innerHTML =
@@ -251,35 +257,33 @@ function bindTapHearts() {
 }
 
 function showError(message) {
-  ui.error.textContent = message;
-  ui.error.hidden = false;
-  ui.countdown.classList.add("is-done");
-  ui.percent.textContent = "—";
+  setText(ui.error, message);
+  if (ui.error) ui.error.hidden = false;
+  ui.countdown?.classList.add("is-done");
+  setText(ui.percent, "—");
 }
 
 /** 渲染静态文案 */
 function renderStaticText(start, meeting) {
   document.title = TITLE_TEXT;
-  ui.eyebrow.textContent = EYEBROW;
-  ui.title.innerHTML = titleHtml(TITLE_TEXT);
-  ui.arrival.textContent = ARRIVED_TEXT;
-  ui.footText.textContent = FOOTER_TEXT;
+  setText(ui.eyebrow, EYEBROW);
+  if (ui.eyebrow) ui.eyebrow.hidden = !EYEBROW;      // EYEBROW 设成 "" 就自动隐藏
+  setHtml(ui.title, titleHtml(TITLE_TEXT));
+  setText(ui.arrival, ARRIVED_TEXT);
+  setText(ui.footText, FOOTER_TEXT);
 
-  if (LOCATION_1 && LOCATION_2) {
+  if (LOCATION_1 && LOCATION_2 && ui.places) {
     ui.places.textContent = `${LOCATION_1} → ${LOCATION_2}`;
     ui.places.hidden = false;
   }
 
-  if (HINT_TEXT) {
-    ui.hint.textContent = HINT_TEXT;
-  } else {
-    ui.hint.hidden = true;
-  }
+  if (ui.hint) ui.hint.hidden = !HINT_TEXT;
+  setText(ui.hint, HINT_TEXT);
 
-  ui.startLabel.textContent = formatDateLabel(start);
-  ui.startLabel.dateTime = toDateTimeAttr(start);
-  ui.meetLabel.textContent = formatDateLabel(meeting);
-  ui.meetLabel.dateTime = toDateTimeAttr(meeting);
+  setText(ui.startLabel, formatDateLabel(start));
+  setText(ui.meetLabel, formatDateLabel(meeting));
+  if (ui.startLabel) ui.startLabel.dateTime = toDateTimeAttr(start);
+  if (ui.meetLabel) ui.meetLabel.dateTime = toDateTimeAttr(meeting);
 }
 
 /** 计算进度百分比，限制在 0–100 之间 */
@@ -311,29 +315,29 @@ function tick(start, meeting) {
 
   // 进度条 + 时间轴标记
   const shown = arrived ? 100 : percent;
-  ui.fill.style.width = shown + "%";
-  ui.marker.style.setProperty("--p", shown / 100);
-  ui.couple.style.setProperty("--p", shown / 100);
-  ui.percent.textContent = shown.toFixed(PERCENT_DECIMALS) + "%";
-  ui.bar.setAttribute("aria-valuenow", shown.toFixed(PERCENT_DECIMALS));
-  ui.fill.classList.toggle("is-full", shown >= 100);
-  ui.percent.classList.toggle("is-full", shown >= 100);
-  ui.marker.classList.toggle("is-full", shown >= 100);
+  if (ui.fill) ui.fill.style.width = shown + "%";
+  ui.marker?.style.setProperty("--p", shown / 100);
+  ui.couple?.style.setProperty("--p", shown / 100);
+  setText(ui.percent, shown.toFixed(PERCENT_DECIMALS) + "%");
+  ui.bar?.setAttribute("aria-valuenow", shown.toFixed(PERCENT_DECIMALS));
+  ui.fill?.classList.toggle("is-full", shown >= 100);
+  ui.percent?.classList.toggle("is-full", shown >= 100);
+  ui.marker?.classList.toggle("is-full", shown >= 100);
 
   // 倒计时 / 见面状态
   if (arrived) {
-    ui.countdown.classList.add("is-done");
-    ui.arrival.hidden = false;
-    ui.eyebrow.textContent = ARRIVED_EYEBROW;
-    ui.title.innerHTML = titleHtml(ARRIVED_TITLE);
+    ui.countdown?.classList.add("is-done");
+    if (ui.arrival) ui.arrival.hidden = false;
+    setText(ui.eyebrow, ARRIVED_EYEBROW);
+    setHtml(ui.title, titleHtml(ARRIVED_TITLE));
     return true;
   }
 
   const t = splitRemaining(remaining);
-  ui.days.textContent = String(t.days);
-  ui.hours.textContent = pad2(t.hours);
-  ui.minutes.textContent = pad2(t.minutes);
-  ui.seconds.textContent = pad2(t.seconds);
+  setText(ui.days, String(t.days));
+  setText(ui.hours, pad2(t.hours));
+  setText(ui.minutes, pad2(t.minutes));
+  setText(ui.seconds, pad2(t.seconds));
   return false;
 }
 
