@@ -147,6 +147,18 @@ const LOCATION_2 = "上海";
 - 如果这些文件放在仓库里的 `next-meeting/` 子文件夹 → 同样选 `/root`，访问 `https://<用户名>.github.io/<仓库名>/next-meeting/`
 - 也可以把文件夹改名成 `docs/`，然后在 Pages 里把文件夹选成 `/docs`
 
+### 改完看不到变化？
+
+`index.html` 里引用 CSS 和 JS 的地方带了版本号：
+
+```html
+<link rel="stylesheet" href="style.css?v=2" />
+<script src="script.js?v=2"></script>
+```
+
+浏览器（尤其是 iOS Safari）会把 CSS / JS 缓存很久。**每次改完 `style.css` 或 `script.js`，把这两个数字 +1 再提交**，
+所有人下次打开就一定是新版本，不用手动清缓存。
+
 ### 更新内容
 
 改完 `script.js` 之后：
