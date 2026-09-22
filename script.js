@@ -17,7 +17,7 @@ const LOCATION_1 = "";     // 例如 "Vancouver"
 const LOCATION_2 = "";     // 例如 "上海"
 
 // 文案
-const EYEBROW      = "Next Meeting";
+const EYEBROW      = "";   // 留空 = 不显示标题上方那行小标签
 // 英文名字两边自动加空格，中文名字不加（排版更好看）
 const sp = (name) => (/[A-Za-z0-9]/.test(name) ? ` ${name} ` : name);
 const TITLE_TEXT   = `距离${sp(PERSON_2)}和${sp(PERSON_1)}下次见面还有`;
@@ -43,6 +43,10 @@ const PIXEL_COLORS = {
 // 点击冒出的爱心颜色 / 每次冒几颗
 const HEART_COLORS = ["#f4718f", "#ff93ad", "#e8709a", "#a996e8"];
 const HEARTS_PER_TAP = 5;
+
+// 背景：可选 "globe"（地球航线）或 "scene"（8bit 柳树小恐龙）
+// 这里设的是第一次打开时的默认背景，之后会记住访问者自己的选择
+const DEFAULT_BG = "globe";
 
 // 提示文字（设成 "" 则不显示）
 const HINT_TEXT = "轻点一下 ♡";
@@ -77,6 +81,36 @@ function titleHtml(text) {
   const html = escapeHtml(text);
   if (!names.length) return html;
   return html.replace(new RegExp(names.join("|"), "g"), (m) => `<span class="nowrap">${m}</span>`);
+}
+
+/* ---------- 背景切换 ---------- */
+
+const BG_ORDER = ["globe", "scene"];
+const BG_STORAGE_KEY = "next-meeting-bg";
+
+function readSavedBg() {
+  try {
+    const saved = localStorage.getItem(BG_STORAGE_KEY);
+    return BG_ORDER.includes(saved) ? saved : null;
+  } catch (e) {
+    return null;   // 隐私模式等情况下读不到，忽略即可
+  }
+}
+
+function setBg(name) {
+  document.documentElement.dataset.bg = name;
+  try { localStorage.setItem(BG_STORAGE_KEY, name); } catch (e) { /* 存不了也不影响 */ }
+}
+
+function initBackground() {
+  setBg(readSavedBg() || DEFAULT_BG);
+  const button = el("bgSwitch");
+  if (!button) return;
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const current = document.documentElement.dataset.bg;
+    setBg(BG_ORDER[(BG_ORDER.indexOf(current) + 1) % BG_ORDER.length]);
+  });
 }
 
 /* ---------- 像素小人 ---------- */
@@ -248,7 +282,8 @@ function spawnHearts(count = HEARTS_PER_TAP) {
 
 /** 点击 / 触摸页面任意位置都会冒爱心 */
 function bindTapHearts() {
-  document.addEventListener("pointerdown", () => {
+  document.addEventListener("pointerdown", (event) => {
+    if (event.target.closest && event.target.closest(".bg-switch")) return;  // 点按钮时不冒爱心
     spawnHearts();
     if (ui.hint && !ui.hint.classList.contains("is-gone")) {
       ui.hint.classList.add("is-gone");
@@ -342,6 +377,8 @@ function tick(start, meeting) {
 }
 
 function init() {
+  initBackground();
+
   const start = parseLocalDate(START_DATE);
   const meeting = parseLocalDate(MEETING_DATE);
 
