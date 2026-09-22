@@ -205,9 +205,11 @@ body {
 .globe .g-plane-out,
 .globe .g-plane-back { fill: #6b6490; opacity: 0.9; }
 
-/* 手机上把卡片放低一点，给上面的画留出位置 */
-@media (max-width: 640px) and (min-height: 680px) {
-  body { align-items: flex-end; padding-bottom: max(26px, env(safe-area-inset-bottom)); }
+/* 手机上把卡片压到屏幕下方，上半屏留给背景画 */
+@media (max-width: 640px) and (min-height: 560px) {
+  body { align-items: flex-end; }
+  /* auto 外边距会吃掉多余空间，把卡片顶到底部，不依赖 align-items 是否生效 */
+  .card { margin-top: auto; }
 }
 
 /* 手机：缩到能完整看到两座城市和整条航线 */
