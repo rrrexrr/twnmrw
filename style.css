@@ -153,7 +153,7 @@ body {
 /* ---------- 背景地球 ---------- */
 .globe {
   position: fixed;
-  top: clamp(-96px, -7vh, -12px);
+  top: clamp(-30px, -2vh, -2px);
   left: 50%;
   transform: translateX(-50%);
   width: min(1240px, 136vw);
@@ -216,7 +216,7 @@ body {
 
   .globe {
     width: 134vw;
-    top: clamp(-24px, -1.5vh, 0px);
+    top: clamp(0px, 0.6vh, 8px);
     opacity: 0.66;
   }
 }
