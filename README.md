@@ -1,213 +1,220 @@
-# 下次见面 · Next Meeting
+# 我们的小站 · Rex & 洛洛 HQ
 
-一个纯静态的倒计时页面：显示从「起点日期」到「下次见面日期」的进度条、百分比和实时倒计时。
+一个纯静态的小网站，部署在 GitHub Pages 上，底部导航可以切换不同的功能：
 
-- 只用 HTML / CSS / 原生 JavaScript，无框架、无后端、无数据库
-- 可直接双击 `index.html` 在本地打开，也可以直接部署到 GitHub Pages
-- 使用浏览器的本地时间，每秒自动刷新，不需要手动刷新页面
+| 页面 | 状态 | 说明 |
+| --- | --- | --- |
+| 首页 | ✅ | 见面倒计时、牵手的像素小人、点屏幕冒爱心 |
+| 里程碑 | ✅ | 时间线 + 进度条，完成一步推进一格；解锁贴纸、升级 |
+| 点菜 | ✅ | 菜单、「今天吃什么」随机抽、发到聊天、共享点单 |
+| 邮件提醒 | ✅（可选） | 点了菜 / 完成了里程碑，自动发邮件 |
+| 约会 / 回忆 / 小游戏 | 🚧 | 预告页，之后一个个做 |
+
+右上角的小按钮可以切换两张背景：地球航线 / 像素画。
+
+---
+
+## 目录结构
 
 ```
-next-meeting/
-├── index.html
-├── style.css
-├── script.js
-└── README.md
+index.html              页面骨架（背景、导航、版本号）
+manifest.webmanifest    「添加到主屏幕」用的配置
+css/
+  base.css              配色、布局、卡片、导航、按钮、弹层等通用样式
+  home.css              首页倒计时
+  milestones.css        里程碑
+  menu.css              点菜
+js/
+  config.js             ★ 日常只需要改这个文件
+  main.js               入口
+  router.js             底部导航 + 页面切换（加新页面在这里加一行）
+  lib/                  通用工具：数据存取、暗号、弹层、特效、像素画……
+  blocks/               每个页面一个文件
+assets/                 像素画背景、App 图标
+supabase/schema.sql     云端数据库（开启云端同步时用）
+supabase/notify.sql     邮件提醒：数据库这边的触发器（可选）
+supabase/apps-script.gs 邮件提醒：Google 那边负责发信的小脚本（可选）
+.github/workflows/      保持云端数据库醒着的定时任务
 ```
 
 ---
 
-## 1. 怎么修改设置
+## 本地预览
 
-所有可配置项都在 **`script.js` 最上面的「配置区」**，改完保存、刷新页面即可。其余代码不用动。
+现在用的是现代 JavaScript 模块写法，**直接双击 `index.html` 打不开**（浏览器的安全限制），需要起一个本地服务器：
 
-```js
-const START_DATE   = "2026-09-06T00:00:00";
-const MEETING_DATE = "2026-12-23T23:59:59";
-
-const PERSON_1 = "洛洛";   // Willow
-const PERSON_2 = "Rex";
-
-const LOCATION_1 = "";
-const LOCATION_2 = "";
-```
-
-### 修改见面日期
-
-改 `MEETING_DATE`，格式固定为 `YYYY-MM-DDTHH:mm:ss`（本地时间，不要加 `Z`）：
-
-```js
-const MEETING_DATE = "2027-02-14T18:30:00";   // 2027年2月14日 晚上6点半
-```
-
-### 修改起点日期
-
-改 `START_DATE`，进度条就是从这一刻开始算的（通常是上次见面、或者开始倒数的那天）：
-
-```js
-const START_DATE = "2026-12-24T00:00:00";
-```
-
-> 起点必须早于见面时间，否则页面会提示日期设置有误。
-
-### 修改名字
-
-```js
-const PERSON_1 = "Willow";
-const PERSON_2 = "Rex";
-```
-
-标题会自动变成「距离 Rex 和 Willow 下次见面还有」（英文名两边会自动留空格，中文名不留）。
-如果想完全自定义标题，改下面这行就行：
-
-```js
-const TITLE_TEXT = `距离${sp(PERSON_2)}和${sp(PERSON_1)}下次见面还有`;
-```
-
-### 修改地点
-
-默认不显示地点。填上两个地点后，标题下方会出现一行小字 `Vancouver → 上海`：
-
-```js
-const LOCATION_1 = "Vancouver";
-const LOCATION_2 = "上海";
-```
-
-想隐藏，把它们改回空字符串 `""` 即可。
-
-### 其他可选项
-
-| 常量 | 作用 |
-| --- | --- |
-| `EYEBROW` | 标题上方的小标签（默认 `Next Meeting`） |
-| `ARRIVED_TEXT` | 见面当天显示的文字（默认 `❤️见面就是今天❤️`） |
-| `ARRIVED_EYEBROW` / `ARRIVED_TITLE` | 见面当天的小标签和标题（默认 `Today` / `Rex 和洛洛`） |
-| `FOOTER_TEXT` | 底部那句话 |
-| `PERCENT_DECIMALS` | 百分比小数位数（默认 2） |
-| `LABEL_LOCALE` | 时间轴两端日期的语言：`"en-US"` → `September 6`；`"zh-CN"` → `9月6日` |
-| `HINT_TEXT` | 进度条下面那句小提示（设成 `""` 就不显示） |
-| `PIXEL_COLORS` | 两个像素小人的配色（头发、衣服、皮肤、鞋） |
-| `HEART_COLORS` / `HEARTS_PER_TAP` | 点击冒出的爱心颜色和数量 |
-
-### 像素小人
-
-进度条上方那两个手牵手的小人会跟着进度一起往右走，点击（手机上是轻触）页面任意位置，他们头顶会冒爱心。
-见面当天他们会自己不停冒爱心。
-
-小人的造型是用字符画定义的，在 `script.js` 里的 `REX_A` / `WILLOW_A`，一个字符就是一个像素点，
-`.` 表示透明，其余字母对应 `PIXEL_COLORS` 里的颜色，想改发型或衣服直接改那几行字符即可。
-
-### 换背景
-
-右上角那个小按钮可以在两张背景之间切换，按钮上显示的是「下一张」背景的图标：
-
-- **地球航线**（`globe`）：爱丁堡 ⇄ 温哥华，有飞机来回飞
-- **柳树小恐龙**（`scene`）：铺满整屏的像素画，一只小恐龙坐在山坡上的柳树下
-
-选择会记在浏览器里（`localStorage`），下次打开还是上次选的那张；
-第一次打开时用哪张由 `script.js` 里的 `DEFAULT_BG` 决定（`"globe"` 或 `"scene"`）。
-
-像素画是两张独立的 PNG，页面按屏幕比例自动选：
-
-- `scene.png`（384×240）：横屏 / 电脑
-- `scene-portrait.png`（240×420）：竖屏 / 手机、平板
-
-切到这张背景时，倒计时卡片会自动变成半透明毛玻璃（`style.css` 里 `:root[data-bg="scene"] .card`），
-让画透出来；想更透或更实，改那条规则里的 `rgba(255,255,255,0.60)` 即可。
-
-想换画直接替换这两个文件就行（CSS 用 `object-fit: cover` 铺满，`image-rendering: pixelated` 保证像素不被糊掉）。
-换了之后记得把 `index.html` 里这两张图后面的 `?v=` 数字 +1，不然浏览器会拿旧的缓存。
-
-### 背景地球
-
-`index.html` 顶部那段 `<svg class="globe">` 是页面背景里的地球：大陆轮廓、经纬线、以及爱丁堡 ⇄ 温哥华的航线，
-都是按真实经纬度用正射投影算出来的（航线是真正的大圆航线，所以会从格陵兰上方掠过）。
-一架小飞机沿航线来回飞，36 秒一个来回，去程和回程是两个独立的路径，所以机头方向都是对的。
-
-样式在 `style.css` 的「背景地球」一节：`.globe` 的 `opacity` 控制整体浓淡，`.g-land` 是大陆轮廓，
-`.g-route` 是航线虚线，`.g-city` 是两个城市的点。想让它更淡就把 `opacity: 0.62` 调小。
-
-> 城市坐标是烘焙进 SVG 路径里的，换城市需要重新生成这段图形，不是改一个常量就行。
-
-### 字体
-
-标题用的是系统自带的衬线字体（苹果设备上是 New York + 宋体，Windows 上是 Georgia + 宋体），
-不需要下载，离线也能正常显示。想换风格的话，改 `style.css` 顶部的 `--font-title` 就行，
-注释里给了另外两种现成的搭配（圆润无衬线 / 像素风）。
-
-`NEXT MEETING` 那行小标签用的是像素字体 Press Start 2P，从 Google Fonts 加载；
-万一加载不到（比如在国内），会自动退回等宽字体，不影响页面。
-
-### 修改配色
-
-配色集中在 `style.css` 最上方的 `:root` 变量里，例如把主色换掉：
-
-```css
---lavender: #a996e8;        /* 进度条主色 */
---lavender-deep: #8f79e0;   /* 百分比文字、时间轴圆点 */
---heart: #f4718f;           /* 爱心 / 见面当天的强调色 */
-```
+- **VS Code**：装一个「Live Server」扩展，右键 `index.html` → Open with Live Server
+- **终端**：在项目文件夹里运行 `python3 -m http.server 8000`，然后打开 http://localhost:8000
 
 ---
 
-## 2. 关于搜索引擎
+## 日常修改
 
-`index.html` 里有一行：
+改 `js/config.js` 就行：见面日期、名字、文案、默认背景、云端地址都在里面。
 
-```html
-<meta name="robots" content="noindex, nofollow" />
-```
+**改完 css / js 之后**，把 `index.html` 里所有的 `?v=15` 换成新数字（VS Code：`Cmd+Shift+H` 全局替换，比如换成 `?v=16`），
+不然手机会继续用旧的缓存。只改 `config.js` 也一样要换。
 
-它会让 Google / Bing 等搜索引擎不收录这个页面——知道网址的人照样能打开，只是搜不到。
-想被收录的话，把这一行删掉即可。
-
-> 注意：GitHub Pages 的站点本身永远是公网可访问的，即使仓库设成 private 也一样。所以不要在这个仓库里放任何敏感信息。
-
-## 3. 发布到 GitHub Pages
-
-仓库已经推到 GitHub 的前提下：
-
-1. 打开仓库页面，点 **Settings**
-2. 左侧菜单选 **Pages**
-3. **Source** 选择 **Deploy from a branch**
-4. **Branch** 选择 **main**，文件夹选择 **/ (root)**，点 **Save**
-5. 等待 1–2 分钟，页面顶部会出现网址：
-   `https://rrrexrr.github.io/twnmrw/`
-
-### 关于目录
-
-- 如果 `index.html` 就在仓库根目录 → 选 `/root`，访问 `https://<用户名>.github.io/<仓库名>/`
-- 如果这些文件放在仓库里的 `next-meeting/` 子文件夹 → 同样选 `/root`，访问 `https://<用户名>.github.io/<仓库名>/next-meeting/`
-- 也可以把文件夹改名成 `docs/`，然后在 Pages 里把文件夹选成 `/docs`
-
-### 改完看不到变化？
-
-`index.html` 里引用 CSS 和 JS 的地方带了版本号：
-
-```html
-<link rel="stylesheet" href="style.css?v=2" />
-<script src="script.js?v=2"></script>
-```
-
-浏览器（尤其是 iOS Safari）会把 CSS / JS 缓存很久。**每次改完 `style.css` 或 `script.js`，把这两个数字 +1 再提交**，
-所有人下次打开就一定是新版本，不用手动清缓存。
-
-### 更新内容
-
-改完 `script.js` 之后：
+推送：
 
 ```bash
-git add .
-git commit -m "update meeting date"
+git add -A
+git commit -m "update"
 git push
 ```
 
-推送完等约一分钟，GitHub Pages 会自动重新部署。
+---
+
+## 两种模式
+
+### 本地模式（默认）
+
+`config.js` 里 `SUPABASE_URL` 和 `SUPABASE_KEY` 留空时，里程碑、菜单、点单都只存在**当前这台设备的浏览器**里。
+自己玩没问题，但两个人看到的是各自的数据。
+
+### 云端模式（推荐）
+
+两个人看到同一份数据：你完成的里程碑她马上能看到，她点的菜你这边能接单。
+进入这些页面需要输入你们共同的**暗号**（一串数字），每台设备只需要输一次。
+
+#### 开启云端同步（大约 10 分钟）
+
+1. 打开 [supabase.com](https://supabase.com) 注册，点 **New project**，名字随便起，数据库密码存好（这个用不到但别丢），地区选离你们近的，免费档就够
+2. 项目建好后，左边点 **SQL Editor** → **New query**
+3. 打开本项目的 `supabase/schema.sql`，**先把最底部的 `'在这里填暗号'` 改成你们的暗号**（4~12 位数字，建议 8 位以上，别用生日纪念日这种好猜的），然后整个复制进去，点 **Run**
+   - 如果忘了改暗号，会看到一条红字提示，改好再 Run 一次就行
+   - 以后想换暗号：改这一行再 Run 一次整个文件（不会删数据）。换了以后两台设备都会被请回密码页，输新暗号即可
+4. 左边点 **Project Settings** → **API Keys**，复制 **Publishable key**（`sb_publishable_` 开头）；再到 **Data API**（或项目首页）复制 **Project URL**
+5. 填进 `js/config.js`：
+
+   ```js
+   export const SUPABASE_URL = "https://xxxxxxxx.supabase.co";
+   export const SUPABASE_KEY = "sb_publishable_xxxxxxxxxxxx";
+   ```
+
+6. 换一下 `index.html` 里的版本号，push。打开网站 → 里程碑 → 输入暗号，完成
+
+> **这个 key 放在网页里安全吗？** 安全。Publishable key 本来就是设计给网页公开用的。
+> 数据库的三张表对它完全关闭，它唯一能做的是调用 `schema.sql` 里那几个函数，而每个函数都会先核对暗号。
+> 暗号在数据库里只存加密后的哈希；10 分钟内输错 20 次会自动锁 10 分钟，防止被一个个猜。
+
+#### 防止云端数据库「睡着」（可选但推荐）
+
+Supabase 免费项目如果连续 7 天几乎没人访问会被暂停（数据不会丢，去后台点 Resume 就能恢复）。
+你们天天用的话不会触发；想保险的话：
+
+GitHub 仓库 → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**，添加两个：
+
+- `SUPABASE_URL`（和 config.js 里一样）
+- `SUPABASE_KEY`（和 config.js 里一样）
+
+之后 `.github/workflows/keepalive.yml` 每两天会自动去敲一下门。可以在仓库的 **Actions** 页面手动点一次 **Run workflow** 试试。
 
 ---
 
-## 4. 说明
+## 邮件提醒（可选，大约 10 分钟）
 
-- 时间按访问者设备的本地时间计算，所以两个人在不同时区看到的倒计时会有时差，这是正常的
-- 进度百分比被限制在 0%–100% 之间，日期设错也不会出现负数或超过 100%
-- 到达见面时间后，倒计时会替换成 `❤️见面就是今天❤️`，进度条停在 100%
-- 日期格式写错时，页面会显示一条提示，而不是白屏
+开启后：**提交点单**、**完成一个里程碑**，都会自动发一封邮件（同一个里程碑来回点，1 小时内只发一次）。
+需要先开好云端模式。
+
+**原理**：网页本身不能安全地发邮件（发信的密码放进公开网页谁都能看到），所以换成：
+数据库发现有新点单 / 新完成的里程碑 → 通知一个放在你 Google 账号里的小脚本 → 它用你的 Gmail 发信。
+所有口令都只存在 Supabase 和 Google 里，**不在这个公开仓库里**。免费，普通 Gmail 每天大约能发 100 封，完全够用。
+
+#### 第 1 步：Google 这边（发信的小脚本）
+
+1. 打开 [script.google.com](https://script.google.com)，用你的 Gmail 登录 → **新建项目**，左上角改个名字（比如「小站提醒」）
+2. 把本项目 `supabase/apps-script.gs` 的内容整段复制，替换掉编辑器里原有的代码，`Cmd+S` 保存
+3. 顶部函数下拉框选 `sendTest` → 点 **运行** → 按提示授权（会提示「Google 未验证此应用」，点 **高级 → 转至…（不安全）**，这是你自己写的脚本，没关系）。
+   收到一封「[测试] 我们点菜啦」就说明发信没问题
+4. 右上角 **部署 → 新建部署** → 左边齿轮选 **Web 应用**：
+   - 执行身份：**我**
+   - 谁可以访问：**任何人**（必须选这个，数据库才能叫到它；没有口令它什么也不会做）
+   - 点 **部署**，复制那个以 `/exec` 结尾的网址
+
+#### 第 2 步：Supabase 这边（触发器）
+
+1. Supabase 后台 → **SQL Editor** → **New query**，把 `supabase/notify.sql` 整个粘贴进去
+2. **在 SQL Editor 里**把最底部的 `'在这里填Apps Script网址'` 换成刚才复制的网址（别改进仓库里的文件再 push），点 **Run**
+3. 结果区会显示一串口令，复制它
+
+#### 第 3 步：把口令交给 Google 那边
+
+回到 Apps Script → 左边齿轮 **项目设置** → 最下面 **脚本属性** → **添加脚本属性**：
+
+| 属性 | 值 |
+| --- | --- |
+| `TOKEN` | 刚才复制的那串口令（必填） |
+| `TO` | 收件人，比如 `a@gmail.com,b@qq.com`（选填，不填就只发给你自己） |
+
+保存。
+
+#### 第 4 步：试一下
+
+Supabase SQL Editor 里运行：
+
+```sql
+select hq_notify_test();
+```
+
+几秒后收到「✅ 邮件提醒接通啦」就大功告成。之后在网站上点一次菜试试。
+
+#### 以后
+
+- **暂时关掉**：SQL Editor 运行 `update hq_notify set enabled = false;`（打开就是 `true`）
+- **换收件人**：改 Apps Script 的脚本属性 `TO`，不用重新部署
+- **改了 Apps Script 的代码**：要 **部署 → 管理部署 → 编辑（铅笔）→ 版本选「新版本」→ 部署**，网址不变
+- **收不到**：
+  1. 先看垃圾箱
+  2. Apps Script 左边 **执行**（▶︎≡ 图标）：有记录说明数据库叫到它了，点开看日志；「口令不对」= 脚本属性 `TOKEN` 没填对
+  3. 没有任何执行记录：SQL Editor 运行 `select * from hq_notify;` 看网址对不对，
+     再运行 `select status_code, error_msg from net._http_response order by created desc limit 5;`（状态码 302 是正常的）
+
+---
+
+## 各页面怎么用
+
+### 首页
+
+和之前一样。倒计时的日期、名字、文案都在 `config.js` 顶部。
+
+### 里程碑
+
+- 点左边的小圆圈 = 完成。会炸彩纸、解锁一张像素贴纸，攒够数量升级（Lv.0「刚刚出发」→ Lv.8「白头偕老」）
+- 点标题或 ⋯ 可以编辑日期、备注，或者删除
+- 进度条和时间线的彩色段都会跟着往前推
+- 「贴纸收集册」里能看到一共 12 张，已解锁的会显示名字
+- 等级门槛和名字在 `js/blocks/milestones.js` 顶部的 `LEVELS`
+
+### 点菜
+
+- **今天吃什么**：点骰子随机抽一道（选了分类就只在那个分类里抽）
+- **菜单**：点菜名加进点单；「编辑」模式下点菜名可以改名、换分类、删除
+- **去下单**，两种方式：
+  - 💬 **发到聊天里**：把点的菜整理成一段话，弹出手机的分享面板直接发微信 / iMessage（电脑上会复制到剪贴板）
+  - ✓ **提交点单**：出现在「我们的点单」里，两个人打开网站都能看到，一步步点「接单 → 在做 → 开饭」
+- 点单右上角 ⋯：重新发消息 / 再点一次同样的 / 删除
+
+里程碑和点菜都不区分是谁做的 —— 两个人就是一体。
+
+---
+
+## 添加到手机主屏幕
+
+用手机浏览器打开网站 → 分享 → **添加到主屏幕**。之后从桌面图标打开会全屏显示，底部导航用起来就像一个 App。
+
+---
+
+## 以后加新页面
+
+1. 在 `js/blocks/` 里新建一个文件，照着 `placeholder.js` 的样子写 `mount(root)`
+2. 在 `js/router.js` 的 `TABS` 里加一行（或者把 `约会 / 回忆 / 小游戏` 的 `placeholder.js` 换成新文件）
+3. 在 `index.html` 的 `importmap` 里加上新文件（照着已有的格式抄一行）
+4. 需要存数据的话，直接用 `store.list("新的kind")` / `store.save("新的kind", 数据)`，**数据库不用改**
+
+---
+
+## 关于公开
+
+GitHub Pages 的网站是公开可访问的（加了 noindex，搜索引擎不会收录，但知道网址的人能打开首页）。
+里程碑、点单这些私人内容在云端模式下需要暗号才能看到。以后做「回忆」放照片时，也会放在暗号后面。
