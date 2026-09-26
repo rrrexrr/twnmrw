@@ -52,6 +52,11 @@ const ICON_ROWS = {
     ".xoooooxoox.", ".xoooooooox.", ".xoooxoooox.", ".xooxxxoxox.",
     ".xoxxxxxxxx.", ".xxxxxxxxxx.", "............", "............",
   ],
+  notes: [
+    "............", ".xxxxxxxxxx.", ".xoooooooox.", ".xoxxxxxxox.",
+    ".xoooooooox.", ".xoxxxxooox.", ".xoooooooox.", ".xxxxxxxxxx.",
+    "..xxx.......", "..xx........", "..x.........", "............",
+  ],
   games: [
     "............", "............", "............", "..xxxxxxxx..",
     ".xxxxxxxxxx.", "xxxoxxxxxoxx", "xxoooxxxoxox", "xxxoxxxxxoxx",

@@ -1,13 +1,14 @@
 /**
  * 我们的小站 · 邮件提醒（Google Apps Script）
  *
- * 数据库那边一有新点单 / 完成了里程碑，就会 POST 到这里，这里用你的 Gmail 发一封邮件。
+ * 数据库那边一有新点单 / 完成了里程碑 / 新留言，就会 POST 到这里，这里用你的 Gmail 发一封邮件。
  * 怎么装：见 README「邮件提醒」。这个文件整段复制到 script.google.com 的 Code.gs 里。
  *
  * 口令和收件人不写在代码里，放在「项目设置 → 脚本属性」：
  *   TOKEN  必填：notify.sql 运行完显示的那串口令
  *   TO     选填：收件人，多个用英文逗号隔开；不填就发给你自己
- * 改脚本属性不用重新部署；改了这里的代码，要「管理部署 → 编辑 → 新版本」才生效。
+ * 改脚本属性不用重新部署；改了这里的代码（包括以后整段换成新版），
+ * 要「部署 → 管理部署 → 编辑（铅笔）→ 版本选「新版本」→ 部署」才生效，网址不变。
  */
 
 const SITE = "https://rrrexrr.github.io/twnmrw/";
@@ -88,6 +89,21 @@ function compose(msg) {
     });
   }
 
+  if (msg.event === "note") {
+    const text = String(d.text || "");
+    const short = text.replace(/\s+/g, " ").trim();
+    const head = short.length > 24 ? short.slice(0, 24) + "…" : short;
+    return card({
+      subject: "💌 " + (d.sign ? d.sign + " 留言啦" : "新留言") + "：" + head,
+      emoji: "💌",
+      title: d.sign ? d.sign + " 贴了一张新便签" : "留言板上有一张新便签",
+      quote: text,
+      sign: d.sign,
+      link: SITE + "#/notes",
+      button: "去回一张",
+    });
+  }
+
   if (msg.event === "test") {
     return card({ subject: "✅ 邮件提醒接通啦", emoji: "✅", title: "邮件提醒接通啦", lines: ["以后点菜、完成里程碑都会收到邮件"], link: SITE, button: "打开小站" });
   }
@@ -100,14 +116,16 @@ function levelOf(n) {
   return { lv: i, name: LEVELS[i][1], next: LEVELS[i + 1] || null };
 }
 
-function card({ subject, emoji, title, lines, note, link, button }) {
-  const text = [title].concat(lines || [], note ? ["备注：" + note] : [], ["", link]).join("\n");
+function card({ subject, emoji, title, lines, note, quote, sign, link, button }) {
+  const text = [title].concat(lines || [], quote ? ["", quote, sign ? "—— " + sign : ""] : [], note ? ["备注：" + note] : [], ["", link]).join("\n");
   const html =
     '<div style="background:#f4f1fb;padding:28px 12px;font-family:-apple-system,BlinkMacSystemFont,\'PingFang SC\',sans-serif;">' +
       '<div style="max-width:420px;margin:0 auto;background:#fff;border-radius:22px;padding:26px 24px;color:#26222e;">' +
         '<div style="font-size:34px;line-height:1;">' + emoji + '</div>' +
         '<h1 style="margin:12px 0 14px;font-size:20px;">' + esc(title) + '</h1>' +
         (lines || []).map((l) => '<p style="margin:6px 0;font-size:15px;">' + esc(l) + '</p>').join("") +
+        (quote ? '<div style="margin:4px 0 0;padding:16px 16px 12px;border-radius:6px 6px 16px 6px;background:#fff6dc;font-size:15px;line-height:1.7;white-space:pre-wrap;word-break:break-word;">' + esc(quote) +
+          (sign ? '<div style="margin-top:8px;text-align:right;color:#6d6779;font-size:14px;">—— ' + esc(sign) + '</div>' : "") + '</div>' : "") +
         (note ? '<p style="margin:14px 0 0;padding:10px 12px;border-radius:12px;background:#f7f3ff;font-size:14px;color:#5b5566;">「' + esc(note) + '」</p>' : "") +
         '<a href="' + link + '" style="display:inline-block;margin-top:20px;padding:10px 22px;border-radius:999px;background:#8f79e0;color:#fff;text-decoration:none;font-size:14px;">' + esc(button) + ' →</a>' +
       '</div>' +

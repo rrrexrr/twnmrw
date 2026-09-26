@@ -1,12 +1,14 @@
 -- =============================================================
 --  我们的小站 · 邮件提醒（可选）
---  点了菜 / 完成了里程碑 → 自动发一封邮件
+--  点了菜 / 完成了里程碑 / 新留言 → 自动发一封邮件
 --
 --  前提：schema.sql 已经运行过；Google Apps Script 那边已经部署好（见 README「邮件提醒」）
 --  用法：Supabase 后台 → SQL Editor → New query → 粘贴整个文件
 --        ★ 在 SQL Editor 里 ★ 把最底部的网址换成你的 Apps Script 网址 → Run
 --        （不要把真网址改进这个文件再 push，仓库是公开的）
---  可以重复运行：换网址就改最底部再 Run 一次；口令不会变。
+--  可以重复运行：口令不会变。
+--    · 只是更新功能（比如加了留言提醒）：什么都不用改，直接整个 Run
+--    · 要换网址：改最底部的网址再 Run
 -- =============================================================
 
 -- pg_net：让数据库可以往外发 HTTP 请求（在事务提交后异步发，不会拖慢保存）
@@ -58,6 +60,7 @@ revoke execute on function public._hq_notify_send(text, jsonb, jsonb) from publi
 
 -- ---------- 触发器：什么时候发 ----------
 --  · 新的点单（kind = order，新插入）
+--  · 新的留言（kind = note，新插入）
 --  · 里程碑从「未完成」变成「完成」（同一个里程碑 1 小时内只发一次）
 create or replace function public._hq_notify_trigger()
 returns trigger
@@ -71,6 +74,9 @@ declare
 begin
   if new.kind = 'order' and tg_op = 'INSERT' then
     perform _hq_notify_send('order', new.data);
+
+  elsif new.kind = 'note' and tg_op = 'INSERT' then
+    perform _hq_notify_send('note', new.data);
 
   elsif new.kind = 'milestone'
         and new.data->>'done' = 'true'
@@ -120,11 +126,16 @@ revoke execute on function public.hq_notify_test() from public, anon, authentica
 -- =============================================================
 --  ↓↓↓ 在 SQL Editor 里把网址换成你的 Apps Script 网址，再点 Run ↓↓↓
 --  （部署 Apps Script 时给你的那一串，以 /exec 结尾）
+--  之前已经填过、这次只是更新功能的话，保持原样不用改
 -- =============================================================
 do $$
 declare
   v_url text := '在这里填Apps Script网址';   -- 例如 'https://script.google.com/macros/s/AKfy.../exec'
 begin
+  if v_url = '在这里填Apps Script网址' and exists (select 1 from public.hq_notify where id = 1) then
+    raise notice '网址没改，沿用之前填过的';
+    return;
+  end if;
   if v_url !~ '^https://script\.google\.com/macros/s/[A-Za-z0-9_-]+/exec$' then
     raise exception '请先把上面的 v_url 换成 Apps Script 的网址（https://script.google.com/macros/s/.../exec），再点 Run';
   end if;
