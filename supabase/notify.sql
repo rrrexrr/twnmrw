@@ -1,6 +1,6 @@
 -- =============================================================
 --  我们的小站 · 邮件提醒（可选）
---  点了菜 / 完成了里程碑 / 新留言 → 自动发一封邮件
+--  点了菜 / 完成了里程碑 / 新留言 / 新回复 → 自动发一封邮件
 --
 --  前提：schema.sql 已经运行过；Google Apps Script 那边已经部署好（见 README「邮件提醒」）
 --  用法：Supabase 后台 → SQL Editor → New query → 粘贴整个文件
@@ -61,6 +61,7 @@ revoke execute on function public._hq_notify_send(text, jsonb, jsonb) from publi
 -- ---------- 触发器：什么时候发 ----------
 --  · 新的点单（kind = order，新插入）
 --  · 新的留言（kind = note，新插入）
+--  · 新的回复（kind = note_reply，新插入；会带上被回复的那张便签）
 --  · 里程碑从「未完成」变成「完成」（同一个里程碑 1 小时内只发一次）
 create or replace function public._hq_notify_trigger()
 returns trigger
@@ -77,6 +78,10 @@ begin
 
   elsif new.kind = 'note' and tg_op = 'INSERT' then
     perform _hq_notify_send('note', new.data);
+
+  elsif new.kind = 'note_reply' and tg_op = 'INSERT' then
+    perform _hq_notify_send('reply', new.data, jsonb_build_object('parent',
+      coalesce((select data from hq_items where kind = 'note' and id::text = new.data->>'noteId'), '{}'::jsonb)));
 
   elsif new.kind = 'milestone'
         and new.data->>'done' = 'true'

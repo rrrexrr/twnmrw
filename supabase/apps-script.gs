@@ -1,7 +1,7 @@
 /**
  * 我们的小站 · 邮件提醒（Google Apps Script）
  *
- * 数据库那边一有新点单 / 完成了里程碑 / 新留言，就会 POST 到这里，这里用你的 Gmail 发一封邮件。
+ * 数据库那边一有新点单 / 完成了里程碑 / 新留言 / 新回复，就会 POST 到这里，这里用你的 Gmail 发一封邮件。
  * 怎么装：见 README「邮件提醒」。这个文件整段复制到 script.google.com 的 Code.gs 里。
  *
  * 口令和收件人不写在代码里，放在「项目设置 → 脚本属性」：
@@ -104,6 +104,24 @@ function compose(msg) {
     });
   }
 
+  if (msg.event === "reply") {
+    const parent = msg.parent || {};
+    const text = String(d.text || "");
+    const short = text.replace(/\s+/g, " ").trim();
+    const head = short.length > 24 ? short.slice(0, 24) + "…" : short;
+    const orig = String(parent.text || "").replace(/\s+/g, " ").trim();
+    return card({
+      subject: "💬 " + (d.sign ? d.sign + " 回复了便签" : "便签有新回复") + "：" + head,
+      emoji: "💬",
+      title: d.sign ? d.sign + " 回复了一张便签" : "便签有新回复",
+      context: orig ? (parent.sign ? parent.sign + "：" : "") + (orig.length > 60 ? orig.slice(0, 60) + "…" : orig) : "",
+      quote: text,
+      sign: d.sign,
+      link: SITE + "#/notes",
+      button: "去看看",
+    });
+  }
+
   if (msg.event === "test") {
     return card({ subject: "✅ 邮件提醒接通啦", emoji: "✅", title: "邮件提醒接通啦", lines: ["以后点菜、完成里程碑都会收到邮件"], link: SITE, button: "打开小站" });
   }
@@ -116,14 +134,15 @@ function levelOf(n) {
   return { lv: i, name: LEVELS[i][1], next: LEVELS[i + 1] || null };
 }
 
-function card({ subject, emoji, title, lines, note, quote, sign, link, button }) {
-  const text = [title].concat(lines || [], quote ? ["", quote, sign ? "—— " + sign : ""] : [], note ? ["备注：" + note] : [], ["", link]).join("\n");
+function card({ subject, emoji, title, lines, note, context, quote, sign, link, button }) {
+  const text = [title].concat(lines || [], context ? ["", "「" + context + "」"] : [], quote ? ["", quote, sign ? "—— " + sign : ""] : [], note ? ["备注：" + note] : [], ["", link]).join("\n");
   const html =
     '<div style="background:#f4f1fb;padding:28px 12px;font-family:-apple-system,BlinkMacSystemFont,\'PingFang SC\',sans-serif;">' +
       '<div style="max-width:420px;margin:0 auto;background:#fff;border-radius:22px;padding:26px 24px;color:#26222e;">' +
         '<div style="font-size:34px;line-height:1;">' + emoji + '</div>' +
         '<h1 style="margin:12px 0 14px;font-size:20px;">' + esc(title) + '</h1>' +
         (lines || []).map((l) => '<p style="margin:6px 0;font-size:15px;">' + esc(l) + '</p>').join("") +
+        (context ? '<p style="margin:0 0 10px;padding-left:10px;border-left:3px solid #d9d0f5;font-size:13px;line-height:1.6;color:#9a94a6;">' + esc(context) + '</p>' : "") +
         (quote ? '<div style="margin:4px 0 0;padding:16px 16px 12px;border-radius:6px 6px 16px 6px;background:#fff6dc;font-size:15px;line-height:1.7;white-space:pre-wrap;word-break:break-word;">' + esc(quote) +
           (sign ? '<div style="margin-top:8px;text-align:right;color:#6d6779;font-size:14px;">—— ' + esc(sign) + '</div>' : "") + '</div>' : "") +
         (note ? '<p style="margin:14px 0 0;padding:10px 12px;border-radius:12px;background:#f7f3ff;font-size:14px;color:#5b5566;">「' + esc(note) + '」</p>' : "") +

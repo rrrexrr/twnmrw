@@ -1,7 +1,11 @@
 /* 留言板
    - 写一张小便签：可以选颜色、选署名（Rex / 洛洛 / 不署名，会记住上次的选择）
    - 所有留言按时间倒序排成一面墙，点 ♡ 可以给对方的留言加爱心
-   - 云端模式下开了邮件提醒的话，新留言会发邮件给你们 */
+   - 每张便签下面可以回复，回复按时间顺序排在便签底下
+   - 云端模式下开了邮件提醒的话，新留言 / 新回复都会发邮件给你们
+
+   回复单独存一条记录（kind = note_reply，data.noteId 指向便签），
+   这样两个人同时回复也不会互相覆盖。 */
 import { PERSON_1, PERSON_2 } from "../config.js";
 import { html, saved, pick, timeAgo } from "../lib/dom.js";
 import { store, NetError } from "../lib/store.js";
@@ -10,6 +14,8 @@ import { toast, openSheet, confirmSheet } from "../lib/ui.js";
 import { burstFrom, buzz } from "../lib/celebrate.js";
 
 const KIND = "note";
+const REPLY = "note_reply";
+const REPLY_MAX = 300;
 const SIGN_KEY = "hq:sign";
 const DRAFT_KEY = "hq:note-draft";
 const MAX_LEN = 500;
@@ -34,11 +40,15 @@ export default {
 
     const people = [PERSON_2, PERSON_1].filter(Boolean);
     const state = {
-      items: [], loaded: false, error: "", shown: PAGE,
+      items: [], replies: [], loaded: false, error: "", shown: PAGE,
       sign: people.includes(saved.get(SIGN_KEY, "")) ? saved.get(SIGN_KEY, "") : "",
       color: pick(COLORS).id,
       sending: false,
       justAdded: null,
+      replyingTo: null,     // 正在回复哪张便签
+      replyDraft: "",
+      replySending: false,
+      justReplied: null,
     };
     // 点爱心先攒着，停手一会儿再一起保存
     const pendingHearts = new Map();   // id → 还没保存的次数
@@ -60,13 +70,7 @@ export default {
           <span class="note-len" aria-hidden="true"></span>
         </div>
         <div class="note-foot">
-          <div class="note-sign" role="radiogroup" aria-label="署名">
-            <span class="note-sign-label">署名</span>
-            ${[...people, ""].map((p) => html`
-              <button type="button" class="chip note-sign-chip ${state.sign === p ? "is-on" : ""}"
-                      data-act="sign" data-sign="${p}" role="radio"
-                      aria-checked="${state.sign === p ? "true" : "false"}">${p || "不署名"}</button>`)}
-          </div>
+          ${signChips()}
           <button type="button" class="btn primary note-send" data-act="send" ${state.sending ? "disabled" : ""}>贴上去 ✉︎</button>
         </div>
       </section>`;
@@ -77,12 +81,15 @@ export default {
       if (!state.items.length) return html`<p class="empty note-empty">还没有留言。<br />写下第一张便签吧 ♡</p>`;
 
       const list = [...state.items].sort((a, b) => b.created_at.localeCompare(a.created_at));
+      const repliesOf = groupReplies();
       const more = list.length - state.shown;
       return html`
         <ol class="note-wall">
           ${list.slice(0, state.shown).map((it, i) => {
             const d = it.data;
             const hearts = (d.hearts || 0) + (pendingHearts.get(it.id) || 0);
+            const replies = repliesOf.get(it.id) || [];
+            const open = state.replyingTo === it.id;
             return html`
               <li class="note note-${colorOf(d.color)} ${it.id === state.justAdded ? "is-new" : ""}"
                   data-id="${it.id}" style="--tilt:${i % 2 ? 0.6 : -0.6}deg">
@@ -92,17 +99,70 @@ export default {
                   <span class="note-time" title="${new Date(it.created_at).toLocaleString()}">${timeAgo(it.created_at)}</span>
                   <button type="button" class="note-heart ${hearts ? "has" : ""}" data-act="heart"
                           aria-label="送一颗爱心，现在有 ${hearts} 颗">${hearts ? `♥ ${hearts}` : "♡"}</button>
+                  <button type="button" class="note-reply-btn ${open ? "is-on" : ""}" data-act="reply"
+                          aria-expanded="${open ? "true" : "false"}">回复${replies.length ? ` ${replies.length}` : ""}</button>
                   <button type="button" class="icon-btn note-more" data-act="more" aria-label="更多">⋯</button>
                 </div>
+                ${replies.length ? html`
+                  <ul class="reply-list">
+                    ${replies.map((r) => html`
+                      <li class="reply ${r.id === state.justReplied ? "is-new" : ""}" data-reply-id="${r.id}">
+                        <p class="reply-text">${r.data.sign ? html`<b class="reply-by">${r.data.sign}：</b>` : ""}${r.data.text}</p>
+                        <div class="reply-meta">
+                          <span>${timeAgo(r.created_at)}</span>
+                          <button type="button" class="reply-del" data-act="reply-more" aria-label="更多">⋯</button>
+                        </div>
+                      </li>`)}
+                  </ul>` : ""}
+                ${open ? replyBox() : ""}
               </li>`;
           })}
         </ol>
         ${more > 0 ? html`<div class="note-older"><button type="button" class="btn small ghost" data-act="older">再看更早的 ${Math.min(more, PAGE)} 条</button></div>` : ""}`;
     };
 
+    const groupReplies = () => {
+      const map = new Map();
+      for (const r of [...state.replies].sort((a, b) => a.created_at.localeCompare(b.created_at))) {
+        const k = r.data.noteId;
+        if (!map.has(k)) map.set(k, []);
+        map.get(k).push(r);
+      }
+      return map;
+    };
+
+    const signChips = (cls = "") => html`
+      <div class="note-sign ${cls}" role="radiogroup" aria-label="署名">
+        <span class="note-sign-label">署名</span>
+        ${[...people, ""].map((p) => html`
+          <button type="button" class="chip note-sign-chip ${state.sign === p ? "is-on" : ""}"
+                  data-act="sign" data-sign="${p}" role="radio"
+                  aria-checked="${state.sign === p ? "true" : "false"}">${p || "不署名"}</button>`)}
+      </div>`;
+
+    const replyBox = () => html`
+      <div class="reply-box">
+        <textarea class="reply-input" maxlength="${REPLY_MAX}" rows="2" placeholder="回复这张便签…" aria-label="回复内容"></textarea>
+        <div class="reply-foot">
+          ${signChips("is-compact")}
+          <span class="reply-actions">
+            <button type="button" class="btn small ghost" data-act="reply-cancel">取消</button>
+            <button type="button" class="btn small primary" data-act="reply-send" ${state.replySending ? "disabled" : ""}>回复</button>
+          </span>
+        </div>
+      </div>`;
+
     const renderWall = () => {
       const host = root.querySelector(".note-wall-host");
+      const hadFocus = document.activeElement?.classList.contains("reply-input");
       if (host) host.innerHTML = wall();
+      // 重新渲染后把回复框里写了一半的字放回去
+      const box = root.querySelector(".reply-input");
+      if (box) {
+        box.value = state.replyDraft;
+        autosizeEl(box, 200);
+        if (hadFocus) { box.focus(); box.setSelectionRange(box.value.length, box.value.length); }
+      }
       const count = root.querySelector(".note-count");
       if (count) count.textContent = state.items.length ? String(state.items.length) : "";
     };
@@ -142,11 +202,13 @@ export default {
       renderWall();
     };
 
+    const autosizeEl = (el, max) => {
+      el.style.height = "auto";
+      el.style.height = `${Math.min(el.scrollHeight, max)}px`;
+    };
     const autosize = () => {
       const input = root.querySelector(".note-input");
-      if (!input) return;
-      input.style.height = "auto";
-      input.style.height = `${Math.min(input.scrollHeight, 320)}px`;
+      if (input) autosizeEl(input, 320);
     };
 
     const updateLen = () => {
@@ -166,7 +228,7 @@ export default {
         b.classList.toggle("is-on", on);
         b.setAttribute("aria-checked", String(on));
       });
-      box.querySelectorAll("[data-act=sign]").forEach((b) => {
+      root.querySelectorAll("[data-act=sign]").forEach((b) => {
         const on = b.dataset.sign === state.sign;
         b.classList.toggle("is-on", on);
         b.setAttribute("aria-checked", String(on));
@@ -177,7 +239,9 @@ export default {
 
     const load = async () => {
       try {
-        state.items = await store.list(KIND);
+        const [items, replies] = await Promise.all([store.list(KIND), store.list(REPLY)]);
+        state.items = items;
+        state.replies = replies;
         state.error = "";
       } catch (e) {
         if (!(e instanceof NetError)) return;   // 暗号失效会自动回到密码页
@@ -187,9 +251,9 @@ export default {
       if (alive) renderWall();
     };
 
-    const upsertLocal = (item) => {
-      const i = state.items.findIndex((x) => x.id === item.id);
-      if (i >= 0) state.items[i] = item; else state.items.push(item);
+    const upsertLocal = (item, list = state.items) => {
+      const i = list.findIndex((x) => x.id === item.id);
+      if (i >= 0) list[i] = item; else list.push(item);
     };
 
     /* ---------- 发留言 ---------- */
@@ -257,6 +321,76 @@ export default {
       }
     };
 
+    /* ---------- 回复 ---------- */
+
+    const busyTyping = () => Boolean(state.replyingTo && state.replyDraft.trim());
+
+    const toggleReply = (id) => {
+      if (state.replyingTo === id) { state.replyingTo = null; state.replyDraft = ""; renderWall(); return; }
+      state.replyingTo = id;
+      state.replyDraft = "";
+      renderWall();
+      const box = root.querySelector(".reply-input");
+      box?.focus();
+      box?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    };
+
+    const sendReply = async () => {
+      const noteId = state.replyingTo;
+      if (!noteId || state.replySending) return;
+      const text = state.replyDraft.trim();
+      const box = root.querySelector(".reply-input");
+      if (!text) { box?.focus(); toast("先写点什么吧"); return; }
+
+      state.replySending = true;
+      const btn = root.querySelector('[data-act="reply-send"]');
+      if (btn) btn.disabled = true;
+      try {
+        const item = await store.save(REPLY, { noteId, text, sign: state.sign });
+        upsertLocal(item, state.replies);
+        state.justReplied = item.id;
+        state.replyingTo = null;
+        state.replyDraft = "";
+        renderWall();
+        burstFrom(root.querySelector(".reply.is-new"), { count: 18, power: 0.6 });
+        buzz([8, 30, 8]);
+        toast("回复好啦", { tone: "good" });
+      } catch (e) {
+        if (e instanceof NetError) toast("没回复成功，网络好像不太好", { tone: "bad" });
+      } finally {
+        state.replySending = false;
+        const b = root.querySelector('[data-act="reply-send"]');
+        if (b) b.disabled = false;
+      }
+    };
+
+    const replyMore = (rid) => {
+      const r = state.replies.find((x) => x.id === rid);
+      if (!r) return;
+      openSheet({
+        title: "这条回复",
+        body: html`
+          <div class="sheet-list">
+            <button type="button" class="btn block" data-act="r-copy">复制文字</button>
+            <button type="button" class="btn block danger" data-act="r-delete">删除这条回复</button>
+          </div>`,
+        onMount(el, close) {
+          el.querySelector('[data-act="r-copy"]').addEventListener("click", async () => {
+            try { await navigator.clipboard.writeText(r.data.text); toast("复制好了"); close(); }
+            catch { toast("复制不了，长按文字手动复制吧"); }
+          });
+          el.querySelector('[data-act="r-delete"]').addEventListener("click", async () => {
+            if (!(await confirmSheet("删除这条回复？", { ok: "删除", danger: true }))) return;
+            try {
+              await store.remove(rid);
+              state.replies = state.replies.filter((x) => x.id !== rid);
+              close(); renderWall(); toast("已删除");
+            } catch { toast("删除失败，稍后再试", { tone: "bad" }); }
+          });
+        },
+      });
+    };
+
     /* ---------- 更多：复制 / 删除 ---------- */
 
     const more = (id) => {
@@ -275,11 +409,17 @@ export default {
             catch { toast("复制不了，长按文字手动复制吧"); }
           });
           el.querySelector('[data-act="n-delete"]').addEventListener("click", async () => {
-            if (!(await confirmSheet("删除这张便签？删除后不能恢复。", { ok: "删除", danger: true }))) return;
+            const n = state.replies.filter((r) => r.data.noteId === id).length;
+            if (!(await confirmSheet(`删除这张便签${n ? `和下面的 ${n} 条回复` : ""}？删除后不能恢复。`, { ok: "删除", danger: true }))) return;
             try {
               await store.remove(id);
               state.items = state.items.filter((x) => x.id !== id);
+              // 便签下面的回复一起删掉
+              const mine = state.replies.filter((r) => r.data.noteId === id);
+              state.replies = state.replies.filter((r) => r.data.noteId !== id);
+              if (state.replyingTo === id) { state.replyingTo = null; state.replyDraft = ""; }
               close(); renderWall(); toast("已删除");
+              for (const r of mine) store.remove(r.id).catch(() => {});
             } catch { toast("删除失败，稍后再试", { tone: "bad" }); }
           });
         },
@@ -301,19 +441,39 @@ export default {
           repaintComposerOpts();
           break;
         case "heart": heart(id, el); break;
+        case "reply": toggleReply(id); break;
+        case "reply-cancel": state.replyingTo = null; state.replyDraft = ""; renderWall(); break;
+        case "reply-send": sendReply(); break;
+        case "reply-more": replyMore(el.closest(".reply")?.dataset.replyId); break;
         case "more": more(id); break;
         case "older": state.shown += PAGE; renderWall(); break;
         case "reload": state.loaded = false; renderWall(); load(); break;
       }
     };
     root.addEventListener("click", onClick);
-    offs.push(() => root.removeEventListener("click", onClick));
+    const onInput = (e) => {
+      if (!e.target.classList?.contains("reply-input")) return;
+      state.replyDraft = e.target.value;
+      autosizeEl(e.target, 200);
+    };
+    const onKey = (e) => {
+      if (e.target.classList?.contains("reply-input") && e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault(); sendReply();
+      }
+    };
+    root.addEventListener("input", onInput);
+    root.addEventListener("keydown", onKey);
+    offs.push(() => {
+      root.removeEventListener("click", onClick);
+      root.removeEventListener("input", onInput);
+      root.removeEventListener("keydown", onKey);
+    });
 
     // 对方写了新留言，这边过一会儿自动出现（正在点爱心时先不刷新）
     const poll = setInterval(() => {
-      if (document.visibilityState === "visible" && !document.querySelector("dialog[open]") && !pendingHearts.size) load();
+      if (document.visibilityState === "visible" && !document.querySelector("dialog[open]") && !pendingHearts.size && !busyTyping()) load();
     }, 20000);
-    const onVisible = () => { if (document.visibilityState === "visible" && !pendingHearts.size) load(); };
+    const onVisible = () => { if (document.visibilityState === "visible" && !pendingHearts.size && !busyTyping()) load(); };
     document.addEventListener("visibilitychange", onVisible);
     offs.push(() => { clearInterval(poll); document.removeEventListener("visibilitychange", onVisible); });
 
