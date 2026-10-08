@@ -6,7 +6,7 @@
 
 // 起点时间 / 见面时间（本地时间，格式：YYYY-MM-DDTHH:mm:ss）
 export const START_DATE   = "2026-09-06T00:00:00";
-export const MEETING_DATE = "2026-12-23T23:59:59";
+export const MEETING_DATE = "2026-11-07T23:59:59";
 
 // 两个人的名字
 export const PERSON_1 = "洛洛";   // Willow
@@ -27,6 +27,13 @@ export const ARRIVED_EYEBROW = "";
 export const ARRIVED_TITLE   = `${sp(PERSON_2)}和${sp(PERSON_1)}`.trim();
 export const FOOTER_TEXT     = "相思病犯的时候 就来看一眼吧～";
 export const HINT_TEXT       = "轻点一下 ♡";
+
+/* ---------- 每日签到（首页） ---------- */
+
+// 签到从哪天开始算：补签卡从这一周开始每周发，这天之前的日子不能补签
+export const CHECKIN_START   = "2026-10-05";
+// 每周一每人送几张补签卡（用不完会一直攒着）
+export const MAKEUP_PER_WEEK = 1;
 
 export const PERCENT_DECIMALS = 2;
 export const LABEL_LOCALE     = "en-US";   // 时间轴日期："en-US" → September 6；"zh-CN" → 9月6日

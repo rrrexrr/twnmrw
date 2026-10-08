@@ -1,0 +1,158 @@
+/* ==========================================================
+   每日签到（首页卡片里的一行 + 签到日历弹层）
+   ========================================================== */
+
+.ci-p0 { --who: #a996e8; --who-soft: rgba(169, 150, 232, 0.16); --who-ink: #7a63cf; }   /* Rex */
+.ci-p1 { --who: #f4a6bb; --who-soft: rgba(244, 166, 187, 0.2);  --who-ink: #d0577a; }   /* 洛洛 */
+
+.ci-dot {
+  flex: 0 0 auto;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--who);
+}
+
+/* ---------- 首页上的一行 ---------- */
+
+.home-card .checkin { margin-top: 18px; }
+
+.ci-row { display: flex; align-items: stretch; gap: 8px; }
+
+.ci-pill {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex; align-items: center; gap: 6px;
+  min-height: 42px;
+  padding: 0 6px 0 12px;
+  border: 1px solid var(--who-soft);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--ink);
+  font-size: 0.86rem;
+  transition: transform 0.12s ease, background 0.2s ease;
+}
+.ci-pill:active:not(:disabled) { transform: scale(0.96); }
+.ci-pill:disabled { opacity: 0.6; }
+.ci-name { flex: 0 0 auto; font-weight: 600; white-space: nowrap; }
+.ci-streak { font-size: 0.76rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ci-act {
+  margin-left: auto;
+  padding: 5px 11px;
+  border-radius: 10px;
+  background: var(--who);
+  color: #fff;
+  font-size: 0.8rem; font-weight: 600;
+  white-space: nowrap;
+}
+.ci-pill.is-done { background: var(--who-soft); border-color: transparent; }
+.ci-pill.is-done .ci-act { background: transparent; color: var(--who-ink); padding: 5px 6px; font-size: 0.95rem; }
+
+.ci-cal {
+  position: relative;
+  flex: 0 0 42px;
+  display: grid; place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 1.05rem;
+}
+.ci-cal:active { transform: scale(0.94); }
+.ci-badge {
+  position: absolute; top: 6px; right: 6px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--heart);
+  box-shadow: 0 0 0 2px #fff;
+}
+
+.ci-lock {
+  width: 100%;
+  min-height: 42px;
+  border: 1px dashed rgba(143, 121, 224, 0.4);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--lavender-deep);
+  font-size: 0.86rem;
+}
+.ci-error { margin: 8px 0 0; text-align: center; font-size: 0.78rem; color: #d0496b; }
+.ci-link {
+  padding: 0 4px;
+  border: 0; background: none;
+  color: var(--lavender-deep);
+  font-size: 0.78rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+:root[data-bg="scene"] .ci-pill:not(.is-done),
+:root[data-bg="scene"] .ci-cal { background: rgba(255, 255, 255, 0.55); }
+
+@media (max-width: 360px) {
+  .ci-pill { padding-left: 9px; gap: 4px; }
+  .ci-act { padding: 5px 8px; }
+  .ci-pill.is-done .ci-act { padding: 5px 2px; }
+  .ci-streak { font-size: 0.7rem; }
+}
+
+/* ---------- 签到日历弹层 ---------- */
+
+.ci-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ci-stat {
+  padding: 12px 12px 10px;
+  border-radius: 16px;
+  background: var(--who-soft);
+}
+.ci-stat-name { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--ink-soft); }
+.ci-stat-big { margin-top: 6px; font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ci-stat-big small { font-size: 0.72rem; font-weight: 400; color: var(--ink-soft); }
+.ci-stat-sub { margin-top: 2px; font-size: 0.74rem; color: var(--ink-soft); }
+.ci-stat-sub b { color: var(--who-ink); }
+
+.ci-together { margin: 12px 0 4px; text-align: center; font-size: 0.84rem; color: var(--ink-soft); }
+.ci-together b { color: var(--heart); }
+
+.ci-cal-head { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 8px 0 6px; }
+.ci-cal-head .icon-btn:disabled { opacity: 0.25; }
+.ci-month { min-width: 7em; text-align: center; font-weight: 600; }
+
+.ci-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.ci-wd { text-align: center; font-size: 0.7rem; color: var(--ink-faint); padding-bottom: 2px; }
+.ci-day {
+  display: grid; justify-items: center; gap: 3px;
+  padding: 6px 0 5px;
+  border: 0; border-radius: 12px;
+  background: rgba(38, 34, 46, 0.03);
+  color: var(--ink);
+}
+.ci-day:hover:not(:disabled) { background: rgba(169, 150, 232, 0.12); }
+.ci-num { font-size: 0.82rem; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.ci-dots { display: flex; gap: 3px; height: 7px; }
+.ci-dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(38, 34, 46, 0.07); }
+.ci-dots i.is-on { background: var(--who); }
+.ci-dots i.is-makeup { background: #fff; box-shadow: inset 0 0 0 2px var(--who); }   /* 补签：空心圈 */
+.ci-legend { display: flex; justify-content: center; gap: 14px; margin-top: 8px; font-size: 0.72rem; color: var(--ink-faint); }
+.ci-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.ci-legend i { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-faint); }
+.ci-legend i.is-makeup { background: #fff; box-shadow: inset 0 0 0 2px var(--ink-faint); }
+.ci-day.is-out { opacity: 0.4; }
+.ci-day.is-off { background: transparent; color: var(--ink-faint); }
+.ci-day.is-off .ci-dots { visibility: hidden; }
+.ci-day.is-today .ci-num { font-weight: 700; color: var(--lavender-deep); }
+.ci-day.is-sel { background: #fff; box-shadow: 0 0 0 2px var(--lavender-deep); }
+
+.ci-detail {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(169, 150, 232, 0.08);
+}
+.ci-detail-day { font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; }
+.ci-line { display: flex; align-items: center; gap: 8px; min-height: 40px; }
+.ci-line .spacer { flex: 1; }
+.ci-line-name { font-size: 0.88rem; }
+.ci-state { font-size: 0.82rem; color: var(--who-ink); font-weight: 600; }
+.ci-state.is-muted { color: var(--ink-faint); font-weight: 400; }
+
+.ci-rule { margin: 12px 0 0; text-align: center; font-size: 0.72rem; color: var(--ink-faint); line-height: 1.6; }
+
+/* 在弹层里输入暗号：去掉卡片自己的外框 */
+.ci-unlock .lock { box-shadow: none; border: 0; padding: 4px 0 0; background: transparent; }

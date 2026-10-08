@@ -2,6 +2,7 @@
 import * as C from "../config.js";
 import { html, raw, esc, rand } from "../lib/dom.js";
 import { pixelSvg, REX, WILLOW, HEART, stepFrame, joinSprites } from "../lib/pixel.js";
+import { mountCheckin } from "./checkin.js";
 
 /* ---------- 日期工具 ---------- */
 
@@ -78,6 +79,8 @@ function template() {
       <p class="hint" data-ref="hint"></p>
     </section>
 
+    <section class="checkin" data-ref="checkin" aria-label="每日签到"></section>
+
     <footer class="foot">
       <span class="heart" aria-hidden="true">♥</span>
       <span class="foot-text">${C.FOOTER_TEXT}</span>
@@ -135,12 +138,15 @@ export default {
 
     /* 点屏幕冒爱心（点导航和按钮时不算） */
     const onTap = (e) => {
-      if (e.target.closest?.(".tabbar, .bg-switch, dialog, a, button")) return;
+      if (e.target.closest?.(".tabbar, .bg-switch, dialog, a, button, .checkin")) return;
       spawnHearts();
       ref.hint.classList.add("is-gone");
     };
     addEventListener("pointerdown", onTap);
     offs.push(() => removeEventListener("pointerdown", onTap));
+
+    /* 每日签到 */
+    offs.push(mountCheckin(ref.checkin));
 
     /* 日期 */
     const start = parseLocalDate(C.START_DATE);
