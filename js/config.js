@@ -34,6 +34,8 @@ export const HINT_TEXT       = "轻点一下 ♡";
 export const CHECKIN_START   = "2026-10-05";
 // 每周一每人送几张补签卡（用不完会一直攒着）
 export const MAKEUP_PER_WEEK = 1;
+// 额外送的补签卡（在每周发的之外再加），想给谁加就改数字，比如 { "洛洛": 2, "Rex": 1 }
+export const BONUS_CARDS = { "洛洛": 1 };
 
 export const PERCENT_DECIMALS = 2;
 export const LABEL_LOCALE     = "en-US";   // 时间轴日期："en-US" → September 6；"zh-CN" → 9月6日

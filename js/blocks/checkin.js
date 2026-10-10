@@ -5,7 +5,9 @@
 
    每次签到存一条记录：kind = checkin，data = { who, day: "2026-10-07", makeup: true/false }
    补签卡不单独存，而是「到今天为止发了几张 − 已经补签了几次」算出来的，所以不会被改乱。 */
-import { PERSON_1, PERSON_2, CHECKIN_START, MAKEUP_PER_WEEK } from "../config.js";
+import * as C from "../config.js";
+const { PERSON_1, PERSON_2, CHECKIN_START, MAKEUP_PER_WEEK } = C;
+const BONUS_CARDS = C.BONUS_CARDS || {};   // 旧版 config.js 里没有这一项也不报错
 import { html, formatDay, parseDay } from "../lib/dom.js";
 import { store, NetError } from "../lib/store.js";
 import { requireUnlock } from "../lib/auth.js";
@@ -47,12 +49,13 @@ export function cardsGranted(today) {
   return weeks * MAKEUP_PER_WEEK;
 }
 
-export function statsFor(days, today) {
+export function statsFor(days, today, who = "") {
   const signedToday = days.has(today);
   let streak = 0;
   for (let d = signedToday ? today : addDays(today, -1); days.has(d); d = addDays(d, -1)) streak++;
   const used = [...days.values()].filter((r) => r.data.makeup).length;
-  const cards = Math.max(0, cardsGranted(today) - used);
+  const bonus = Math.max(0, Number(BONUS_CARDS[who]) || 0);
+  const cards = Math.max(0, cardsGranted(today) + bonus - used);
   return { signedToday, streak, total: days.size, used, cards };
 }
 
@@ -86,7 +89,7 @@ export function mountCheckin(host) {
     host.innerHTML = html`
       <div class="ci-row" role="group" aria-label="每日签到">
         ${PEOPLE.map((p, i) => {
-          const s = statsFor(by[p], t);
+          const s = statsFor(by[p], t, p);
           const label = !state.loaded ? "…" : s.signedToday ? "✓" : "签到";
           return html`
             <button type="button" class="ci-pill ci-p${i} ${s.signedToday ? "is-done" : ""}"
@@ -99,7 +102,7 @@ export function mountCheckin(host) {
             </button>`;
         })}
         <button type="button" class="ci-cal" data-ci="open" aria-label="签到日历和补签">
-          📅${state.loaded && PEOPLE.some((p) => statsFor(by[p], t).cards > 0) ? html`<i class="ci-badge" aria-hidden="true"></i>` : ""}
+          📅${state.loaded && PEOPLE.some((p) => statsFor(by[p], t, p).cards > 0) ? html`<i class="ci-badge" aria-hidden="true"></i>` : ""}
         </button>
       </div>
       ${state.error ? html`<p class="ci-error">${state.error} <button type="button" class="ci-link" data-ci="reload">再试一次</button></p>` : ""}`;
@@ -110,7 +113,7 @@ export function mountCheckin(host) {
   const sheetBody = () => {
     const t = today();
     const by = index();
-    const stats = Object.fromEntries(PEOPLE.map((p) => [p, statsFor(by[p], t)]));
+    const stats = Object.fromEntries(PEOPLE.map((p) => [p, statsFor(by[p], t, p)]));
     const together = [...by[PEOPLE[0]].keys()].filter((d) => PEOPLE.every((p) => by[p].has(d))).length;
 
     const { y, m } = state.view;
@@ -244,7 +247,7 @@ export function mountCheckin(host) {
     render();
 
     const by = index();
-    const s = statsFor(by[who], t);
+    const s = statsFor(by[who], t, who);
     const both = PEOPLE.every((p) => by[p].has(t));
     burstFrom(fromEl?.isConnected ? fromEl : host.querySelector(`[data-who="${who}"]`) || host, { count: 34, power: 0.9 });
     buzz([10, 40, 10]);
@@ -259,14 +262,14 @@ export function mountCheckin(host) {
 
   const makeup = async (who, day) => {
     const t = today();
-    const s = statsFor(index()[who], t);
+    const s = statsFor(index()[who], t, who);
     if (day >= t || day < START || index()[who].has(day)) return;
     if (s.cards < 1) { toast("补签卡用完啦，下周一会再送一张"); return; }
     const ok = await confirmSheet(`用 1 张补签卡，给 ${who} 补签 ${formatDay(day)}？（还剩 ${s.cards} 张）`, { ok: "补签" });
     if (!ok) return;
     try { await save({ who, day, makeup: true }); } catch { render(); return; }
     render();
-    const after = statsFor(index()[who], t);
+    const after = statsFor(index()[who], t, who);
     buzz([10, 30, 10]);
     toast(`补签成功 · ${who} 现在连续 ${after.streak} 天`, { tone: "good" });
   };

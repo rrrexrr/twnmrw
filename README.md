@@ -54,7 +54,7 @@ supabase/apps-script.gs 邮件提醒：Google 那边负责发信的小脚本（�
 
 改 `js/config.js` 就行：见面日期、名字、文案、默认背景、云端地址都在里面。
 
-**改完 css / js 之后**，把 `index.html` 里所有的 `?v=18` 换成新数字（VS Code：`Cmd+Shift+H` 全局替换，比如换成 `?v=19`），
+**改完 css / js 之后**，把 `index.html` 里所有的 `?v=19` 换成新数字（VS Code：`Cmd+Shift+H` 全局替换，比如换成 `?v=20`），
 不然手机会继续用旧的缓存。只改 `config.js` 也一样要换。
 
 推送：
@@ -197,6 +197,7 @@ select hq_notify_test();
 - 点错了可以在日历里选那天 → 撤销（补签撤销会把卡退回来）
 - 云端模式下要先输一次暗号（这台设备输过就不用再输）
 - `config.js` 里的 `CHECKIN_START`（从哪周开始发补签卡、最早能补到哪天）和 `MAKEUP_PER_WEEK`（每周几张）可以改
+- **额外送补签卡**：改 `config.js` 里的 `BONUS_CARDS`，比如 `{ "洛洛": 2, "Rex": 1 }`，数字是一共额外送几张（不是每周），改完换版本号、push 就生效
 
 ### 里程碑
 
