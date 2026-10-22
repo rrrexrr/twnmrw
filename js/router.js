@@ -9,7 +9,7 @@ export const TABS = [
   { id: "menu",       label: "点菜",   icon: "menu",       load: () => import("./blocks/menu.js") },
   { id: "notes",      label: "留言",   icon: "notes",      load: () => import("./blocks/notes.js") },
   { id: "dates",      label: "约会",   icon: "dates",      load: () => import("./blocks/placeholder.js") },
-  { id: "memories",   label: "回忆",   icon: "memories",   load: () => import("./blocks/placeholder.js") },
+  { id: "memories",   label: "回忆",   icon: "memories",   load: () => import("./blocks/memories.js") },
   { id: "games",      label: "小游戏", icon: "games",      load: () => import("./blocks/placeholder.js") },
 ];
 

@@ -29,7 +29,11 @@ const byCreated = (a, b) => a.created_at.localeCompare(b.created_at);
 
 const local = {
   all() { return saved.get(LOCAL_KEY, []); },
-  write(items) { saved.set(LOCAL_KEY, items); },
+  write(items) {
+    // 浏览器存储满了（比如照片太多）要报错，不能悄悄丢数据
+    try { localStorage.setItem(LOCAL_KEY, JSON.stringify(items)); }
+    catch { throw new NetError("storage_full"); }
+  },
 
   async verify() { return { ok: true }; },
   async list(kind) { return this.all().filter((i) => i.kind === kind).sort(byCreated); },
@@ -43,6 +47,7 @@ const local = {
     return item;
   },
   async remove(id) { this.write(this.all().filter((i) => i.id !== id)); return true; },
+  async get(id) { return this.all().find((i) => i.id === id) || null; },
 };
 
 /* ---------- 云端模式 ---------- */
@@ -96,6 +101,7 @@ const cloud = {
   async list(kind) { return (await this.call("hq_list", { p_kind: kind })).items || []; },
   async save(kind, data, id) { return (await this.call("hq_save", { p_kind: kind, p_id: id || null, p_data: data })).item; },
   async remove(id) { await this.call("hq_remove", { p_id: id }); return true; },
+  async get(id) { return (await this.call("hq_get", { p_id: id })).item || null; },
 };
 
 /* ---------- 对外接口 ---------- */
@@ -112,4 +118,5 @@ export const store = {
   list:   (kind) => backend.list(kind),
   save:   (kind, data, id) => backend.save(kind, data, id),
   remove: (id) => backend.remove(id),
+  get:    (id) => backend.get(id),         // 按 id 取一条（回忆里的大图用）
 };
