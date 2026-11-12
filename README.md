@@ -57,7 +57,7 @@ supabase/apps-script.gs 邮件提醒：Google 那边负责发信的小脚本（�
 
 改 `js/config.js` 就行：见面日期、名字、文案、默认背景、云端地址都在里面。
 
-**改完 css / js 之后**，把 `index.html` 里所有的 `?v=21` 换成新数字（VS Code：`Cmd+Shift+H` 全局替换，比如换成 `?v=22`），
+**改完 css / js 之后**，把 `index.html` 里所有的 `?v=22` 换成新数字（VS Code：`Cmd+Shift+H` 全局替换，比如换成 `?v=23`），
 不然手机会继续用旧的缓存。只改 `config.js` 也一样要换。
 
 推送：
