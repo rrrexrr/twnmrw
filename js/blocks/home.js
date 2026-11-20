@@ -1,7 +1,8 @@
 /* 首页：见面倒计时 */
 import * as C from "../config.js";
 import { html, raw, esc, rand } from "../lib/dom.js";
-import { pixelSvg, REX, WILLOW, HEART, stepFrame, joinSprites } from "../lib/pixel.js";
+import { pixelSvg, REX, WILLOW, HEART, stepFrame } from "../lib/pixel.js";
+import { treeSvg, kidsAt, BULBS, SCENE_W, SCENE_H } from "../lib/tree.js";
 import { mountCheckin } from "./checkin.js";
 
 /* ---------- 日期工具 ---------- */
@@ -58,22 +59,19 @@ function template() {
 
     <section class="progress" aria-label="进度">
       <div class="progress-meta">
-        <span class="progress-label">已走过</span>
+        <span class="progress-label">已点亮 <b data-ref="bulbs">0</b> / ${BULBS.length} 盏灯</span>
         <span class="progress-value" data-ref="percent">--</span>
       </div>
-      <div class="walk"><div class="couple" data-ref="couple" aria-hidden="true"></div></div>
-      <div class="bar" data-ref="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-        <div class="fill" data-ref="fill">
-          <span class="fill-flow" aria-hidden="true"></span>
-          <span class="fill-sheen" aria-hidden="true"></span>
-        </div>
+      <div class="xmas" data-ref="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
+           style="aspect-ratio:${SCENE_W}/${SCENE_H}">
+        ${raw(treeSvg())}
+        <div class="xt-kid xt-kid-l" data-ref="kidL" aria-hidden="true"><i class="xt-ladder"></i></div>
+        <div class="xt-kid xt-kid-r" data-ref="kidR" aria-hidden="true"><i class="xt-ladder"></i></div>
+        <div class="px-hearts" data-ref="hearts"></div>
       </div>
-      <div class="timeline">
+      <div class="xt-dates">
         <time class="tl-date" data-ref="startLabel">—</time>
-        <div class="tl-track">
-          <span class="tl-line" aria-hidden="true"></span>
-          <span class="tl-dot" data-ref="marker" aria-hidden="true"></span>
-        </div>
+        <span class="xt-dates-mid" aria-hidden="true">✦</span>
         <time class="tl-date" data-ref="meetLabel">—</time>
       </div>
       <p class="hint" data-ref="hint"></p>
@@ -107,15 +105,35 @@ export default {
     ref.hint.textContent = C.HINT_TEXT;
     ref.hint.hidden = !C.HINT_TEXT;
 
-    /* 牵手的小人 */
-    const frameA = joinSprites(REX, WILLOW);
-    const frameB = joinSprites(stepFrame(REX), stepFrame(WILLOW));
-    ref.couple.innerHTML =
-      pixelSvg(frameA, C.PIXEL_COLORS, { cls: "px-frame-a" }) +
-      pixelSvg(frameB, C.PIXEL_COLORS, { cls: "px-frame-b" }) +
-      '<div class="px-hearts"></div>';
-    ref.couple.classList.add("is-walking");
-    const heartsLayer = ref.couple.querySelector(".px-hearts");
+    /* 两个挂灯的小人（左 Rex，右 洛洛），两帧交替 = 在梯子上一蹬一蹬 */
+    const kidHtml = (rows) =>
+      pixelSvg(rows, C.PIXEL_COLORS, { cls: "px-frame-a" }) + pixelSvg(stepFrame(rows), C.PIXEL_COLORS, { cls: "px-frame-b" });
+    ref.kidL.insertAdjacentHTML("beforeend", kidHtml(REX));
+    ref.kidR.insertAdjacentHTML("beforeend", kidHtml(WILLOW));
+    const heartsLayer = ref.hearts;
+    const bulbEls = [...root.querySelectorAll(".xt-bulb")];
+    let litShown = -1;
+
+    /** 点亮前 lit 盏灯，小人爬到下一盏的位置 */
+    const paintTree = (lit, full) => {
+      if (lit === litShown && !full) return;
+      const first = litShown < 0;
+      bulbEls.forEach((el, i) => {
+        el.classList.toggle("is-lit", i < lit);
+        el.classList.toggle("is-next", i === lit && !full);
+        if (!first && i >= litShown && i < lit) el.classList.add("is-pop");
+      });
+      ref.bar.classList.toggle("is-full", full);
+      ref.bulbs.textContent = String(lit);
+      const k = kidsAt(lit);
+      for (const [el, x] of [[ref.kidL, k.leftX], [ref.kidR, k.rightX]]) {
+        el.style.setProperty("--x", x);
+        el.style.setProperty("--top", k.top);
+        el.style.setProperty("--ladder", k.ground - k.feet - 1);
+      }
+      heartsLayer.style.setProperty("--top", k.top);
+      litShown = lit;
+    };
 
     const spawnHearts = (count = C.HEARTS_PER_TAP) => {
       if (heartsLayer.childElementCount > 40) return;
@@ -174,15 +192,11 @@ export default {
       const arrived = remaining <= 0;
       const pct = arrived ? 100 : Math.min(100, Math.max(0, ((now - start) / (meeting - start)) * 100));
 
-      ref.fill.style.width = `${pct}%`;
-      ref.marker.style.setProperty("--p", pct / 100);
-      ref.couple.style.setProperty("--p", pct / 100);
+      const full = pct >= 100;
+      paintTree(full ? BULBS.length : Math.min(BULBS.length - 1, Math.floor((pct / 100) * BULBS.length)), full);
       ref.percent.textContent = `${pct.toFixed(C.PERCENT_DECIMALS)}%`;
       ref.bar.setAttribute("aria-valuenow", pct.toFixed(C.PERCENT_DECIMALS));
-      const full = pct >= 100;
-      ref.fill.classList.toggle("is-full", full);
       ref.percent.classList.toggle("is-full", full);
-      ref.marker.classList.toggle("is-full", full);
 
       if (arrived) {
         ref.countdown.classList.add("is-done");

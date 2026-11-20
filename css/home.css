@@ -97,125 +97,92 @@
   50%      { transform: scale(1.035); }
 }
 
-/* ---------- Progress ---------- */
+/* ---------- Progress：圣诞树 ---------- */
 .home-card .progress-meta {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .home-card .progress-label {
   font-size: 0.78rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: var(--ink-faint);
 }
+.home-card .progress-label b { color: var(--ink-soft); font-weight: 600; font-variant-numeric: tabular-nums; }
 
 .home-card .progress-value {
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--lavender-deep);
+  color: #3c8a52;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
 }
-
 .home-card .progress-value.is-full { color: var(--heart); }
 
-.home-card .bar {
+/* 整个场景按 60×46 的像素格排版：--u = 一格的宽度 */
+.home-card .xmas {
   position: relative;
-  height: 14px;
-  border-radius: 999px;
-  background: var(--track);
-  box-shadow: inset 0 1px 2px rgba(38, 34, 46, 0.06);
-  overflow: hidden;
-}
-
-.home-card .fill {
-  position: relative;
-  height: 100%;
-  width: 0%;
-  border-radius: 999px;
-  background: var(--lavender);
-  overflow: hidden;
-  transition: width 0.9s cubic-bezier(0.22, 1, 0.36, 1);
-  box-shadow: 0 1px 6px rgba(143, 121, 224, 0.35);
-}
-
-/* flowing stripes — the "thinking effort" texture */
-.home-card .fill-flow {
-  position: absolute;
-  inset: 0;
-  background-image: repeating-linear-gradient(
-    115deg,
-    rgba(255, 255, 255, 0) 0px,
-    rgba(255, 255, 255, 0) 10px,
-    rgba(255, 255, 255, 0.28) 10px,
-    rgba(255, 255, 255, 0.28) 20px
-  );
-  background-size: 44px 100%;
-  animation: flow 1.6s linear infinite;
-  opacity: 0.55;
-}
-
-@keyframes flow {
-  from { background-position: 0 0; }
-  to   { background-position: 44px 0; }
-}
-
-/* slow sheen sweeping across the filled part */
-.home-card .fill-sheen {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    100deg,
-    rgba(255, 255, 255, 0) 35%,
-    rgba(255, 255, 255, 0.55) 50%,
-    rgba(255, 255, 255, 0) 65%
-  );
-  transform: translateX(-100%);
-  animation: sheen 3.4s ease-in-out infinite;
-}
-
-@keyframes sheen {
-  0%        { transform: translateX(-100%); }
-  55%, 100% { transform: translateX(100%); }
-}
-
-.home-card .fill.is-full { background: var(--heart); box-shadow: 0 1px 8px rgba(244, 113, 143, 0.4); }
-
-/* ---------- Walking pixel couple ---------- */
-.home-card .walk {
-  position: relative;
-  height: 44px;
-  margin-bottom: 4px;
-  overflow: visible;
+  width: min(100%, 300px);
+  margin: 0 auto;
+  container-type: inline-size;
+  --u: calc(100cqw / 60);
   touch-action: manipulation;
 }
+.home-card .xt-svg { display: block; width: 100%; height: 100%; overflow: visible; }
 
-.home-card .couple {
+/* 小灯：没点亮是暗绿色的小点；点亮后发光、轻轻闪 */
+.home-card .xt-glow { opacity: 0; transition: opacity 0.6s ease; }
+.home-card .xt-dot { transition: fill 0.4s ease; }
+.home-card .xt-bulb.is-lit .xt-dot { fill: var(--c); }
+.home-card .xt-bulb.is-lit .xt-glow { opacity: 0.35; animation: twinkle 2.4s ease-in-out infinite; animation-delay: var(--d); }
+.home-card .xt-bulb.is-next .xt-dot { animation: nextBulb 1.2s ease-in-out infinite; }
+.home-card .xt-bulb.is-pop .xt-glow { animation: bulbPop 0.9s ease-out, twinkle 2.4s ease-in-out 0.9s infinite; }
+@keyframes twinkle { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.12; } }
+@keyframes nextBulb { 0%, 100% { fill: #24503a; } 50% { fill: #9fc9a7; } }
+@keyframes bulbPop { 0% { opacity: 1; r: 3.5px; } 100% { opacity: 0.35; r: 1.5px; } }
+
+/* 星星：满了才亮 */
+.home-card .xt-star { color: #b9b08a; transition: color 0.6s ease; }
+.home-card .xmas.is-full .xt-star { color: #ffd24a; }
+.home-card .xmas.is-full .xt-star .xt-glow { opacity: 0.45; animation: twinkle 2s ease-in-out infinite; }
+.home-card .xt-gifts { opacity: 0; transition: opacity 0.8s ease; }
+.home-card .xmas.is-full .xt-gifts { opacity: 1; }
+
+/* 两个小人 + 脚下的梯子 */
+.home-card .xt-kid {
   position: absolute;
-  bottom: 0;
-  left: calc((100% - var(--couple-w)) * var(--p, 0));
-  width: var(--couple-w);
-  height: calc(var(--couple-w) * 13 / 18);
-  transition: --p 0.9s cubic-bezier(0.22, 1, 0.36, 1);
-  --couple-w: 54px;
+  left: calc(var(--x, 0) * var(--u));
+  top: calc(var(--top, 30) * var(--u));
+  width: calc(8 * var(--u));
+  height: calc(13 * var(--u));
+  transition: top 1.2s cubic-bezier(0.22, 1, 0.36, 1), left 1.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
-
-.home-card .couple svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+.home-card .xt-kid svg {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
   overflow: visible;
   shape-rendering: crispEdges;
 }
+.home-card .xt-ladder {
+  position: absolute;
+  left: calc(2 * var(--u));
+  top: calc(13 * var(--u));
+  width: calc(4 * var(--u));
+  height: calc(var(--ladder, 0) * var(--u));
+  box-sizing: border-box;
+  border-left: var(--u) solid #c79a6b;
+  border-right: var(--u) solid #c79a6b;
+  background: repeating-linear-gradient(to bottom, transparent 0 var(--u), #dcb48a var(--u) calc(2 * var(--u)), transparent calc(2 * var(--u)) calc(3 * var(--u)));
+  transition: height 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
 
-/* 两帧交替 = 走路 */
+/* 两帧交替 = 一蹬一蹬 */
 .home-card .px-frame-b { opacity: 0; }
-
-.home-card .couple.is-walking .px-frame-a { animation: stepA 0.9s steps(1, end) infinite; }
-.home-card .couple.is-walking .px-frame-b { animation: stepB 0.9s steps(1, end) infinite; }
+.home-card .xt-kid .px-frame-a { animation: stepA 0.9s steps(1, end) infinite; }
+.home-card .xt-kid .px-frame-b { animation: stepB 0.9s steps(1, end) infinite; }
+.home-card .xt-kid-r svg { animation-delay: 0.45s !important; }
 
 @keyframes stepA {
   0%, 49.9%   { opacity: 1; transform: translateY(0); }
@@ -227,14 +194,15 @@
   50%, 100%   { opacity: 1; transform: translateY(1px); }
 }
 
-/* 爱心特效 */
+/* 爱心特效：从小人正在挂灯的那一层冒出来 */
 .home-card .px-hearts {
   position: absolute;
   left: 50%;
-  top: -2px;
+  top: calc((var(--top, 30) + 4) * var(--u));
   width: 0;
   height: 0;
   pointer-events: none;
+  transition: top 1.2s ease;
 }
 
 .home-card .px-heart {
@@ -257,6 +225,22 @@
   100% { opacity: 0; transform: translate(calc(-50% + var(--x1, 0px)), -52px) scale(1); }
 }
 
+/* 起止日期 */
+.home-card .xt-dates {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+}
+.home-card .xt-dates-mid { color: #ffd24a; font-size: 0.7rem; }
+.home-card .tl-date {
+  font-size: clamp(0.68rem, 2.9vw, 0.78rem);
+  color: var(--ink-faint);
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
 /* ---------- Hint ---------- */
 .home-card .hint {
   margin: 14px 0 0;
@@ -269,57 +253,6 @@
 }
 
 .home-card .hint.is-gone { opacity: 0; pointer-events: none; }
-
-/* ---------- Timeline ---------- */
-.home-card .timeline {
-  display: flex;
-  align-items: center;
-  gap: clamp(8px, 2.5vw, 14px);
-  margin-top: 16px;
-}
-
-.home-card .tl-date {
-  font-size: clamp(0.68rem, 2.9vw, 0.78rem);
-  color: var(--ink-faint);
-  white-space: nowrap;
-  letter-spacing: 0.01em;
-}
-
-.home-card .tl-track {
-  position: relative;
-  flex: 1 1 auto;
-  height: 14px;
-  min-width: 40px;
-}
-
-.home-card .tl-line {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 1px;
-  transform: translateY(-50%);
-  background: repeating-linear-gradient(
-    to right,
-    var(--line) 0 5px,
-    transparent 5px 9px
-  );
-}
-
-.home-card .tl-dot {
-  position: absolute;
-  top: 50%;
-  left: calc((100% - 9px) * var(--p, 0));
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--lavender-deep);
-  transform: translateY(-50%);
-  box-shadow: 0 0 0 4px rgba(169, 150, 232, 0.22);
-  transition: --p 0.9s cubic-bezier(0.22, 1, 0.36, 1), background 0.4s ease;
-}
-
-.home-card .tl-dot.is-full { background: var(--heart); box-shadow: 0 0 0 4px rgba(244, 113, 143, 0.22); }
 
 /* ---------- Footer ---------- */
 .home-card .foot {
@@ -362,12 +295,10 @@
 /* ---------- Small phones ---------- */
 @media (max-width: 360px) {
   .unit { min-width: 50px; }
-  .timeline { gap: 6px; }
 }
 
 
 /* 像素画背景下的细节 */
-:root[data-bg="scene"] .home-card .bar { background: rgba(255, 255, 255, 0.55); }
 :root[data-bg="scene"] .home-card .foot { border-top-color: rgba(38, 34, 46, 0.1); }
 :root[data-bg="scene"] .home-card .lbl,
 :root[data-bg="scene"] .home-card .tl-date,
@@ -375,7 +306,10 @@
 :root[data-bg="scene"] .home-card .hint { color: #6f6a7c; }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-card .couple.is-walking .px-frame-a,
-  .home-card .couple.is-walking .px-frame-b { animation: none; }
+  .home-card .xt-kid .px-frame-a,
+  .home-card .xt-kid .px-frame-b,
+  .home-card .xt-bulb .xt-glow,
+  .home-card .xt-bulb .xt-dot { animation: none !important; }
+  .home-card .px-frame-a { opacity: 1; }
   .home-card .px-frame-b { opacity: 0; }
 }
