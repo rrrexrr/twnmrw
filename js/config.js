@@ -6,7 +6,7 @@
 
 // 起点时间 / 见面时间（本地时间，格式：YYYY-MM-DDTHH:mm:ss）
 export const START_DATE   = "2026-11-15T00:00:00";
-export const MEETING_DATE = "2026-12-24T23:59:59";
+export const MEETING_DATE = "2026-12-16T23:59:59";
 
 // 两个人的名字
 export const PERSON_1 = "洛洛";   // Willow
